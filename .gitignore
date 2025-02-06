@@ -1,20 +1,18 @@
-# Prerequisites
-*.d
-
 # Compiled Object files
 *.slo
 *.lo
 *.o
 *.obj
+*.bak
 
 # Precompiled Headers
-*.gch
-*.pch
+#*.gch
+#*.pch
 
 # Compiled Dynamic libraries
 *.so
 *.dylib
-*.dll
+
 
 # Fortran module files
 *.mod
@@ -24,9 +22,32 @@
 *.lai
 *.la
 *.a
-*.lib
+
 
 # Executables
 *.exe
 *.out
 *.app
+
+# Logfile
+*.log
+*.lot
+
+# Ignore folder
+__history/
+Win32/
+Logs/
+Logs by LOT/
+.svn/
+Debug/
+Release/
+
+# Ignore file
+*.ldb
+*.local
+*.~dsk
+*.tds
+*.vlb
+*.mdb
+*.map
+*.zip
