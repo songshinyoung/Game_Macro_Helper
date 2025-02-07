@@ -51,7 +51,7 @@
         <AllPackageLibs>rtl.lib;vcl.lib</AllPackageLibs>
         <ILINK_LibraryPath>include\;E:\Private\05.Study [Project]\RAD Studio XE4\Find Widnows and Macro\;$(ILINK_LibraryPath)</ILINK_LibraryPath>
         <Icon_MainIcon>$(BDS)\bin\cbuilder_PROJECTICON.ico</Icon_MainIcon>
-        <IncludePath>include\;E:\Private\05.Study [Project]\RAD Studio XE4\Find Widnows and Macro\;$(IncludePath)</IncludePath>
+        <IncludePath>include\;$(IncludePath)</IncludePath>
         <Multithreaded>true</Multithreaded>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
         <DCC_CBuilderOutput>JPHNE</DCC_CBuilderOutput>
@@ -115,6 +115,10 @@
         <BCC_PCHName_Clang>Macro_TestPCH1.h</BCC_PCHName_Clang>
     </PropertyGroup>
     <ItemGroup>
+        <CppCompile Include="BitmapManager.cpp">
+            <DependentOn>BitmapManager.h</DependentOn>
+            <BuildOrder>5</BuildOrder>
+        </CppCompile>
         <CppCompile Include="frmAllScreenCapture.cpp">
             <Form>fmAllScreen</Form>
             <FormType>dfm</FormType>

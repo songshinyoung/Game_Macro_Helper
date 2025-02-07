@@ -17,6 +17,8 @@
 
 #include "MainForm.h"
 #include "frmAllScreenCapture.h"
+
+
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
@@ -25,8 +27,8 @@ TfmMain *fmMain;
 HHOOK 	g_hMouseHook;
 HHOOK	g_hKeyHook;
 
-int		g_MousePos_X;
-int		g_MousePos_Y;
+//int		g_MousePos_X;
+//int		g_MousePos_Y;
 
 bool	g_bMacroStarted;
 
@@ -91,8 +93,6 @@ HWND FindWindowByExeName(const wchar_t* exeName) {
     return data.FoundHandle;
 }
 //---------------------------------------------------------------------------
-
-
 
 
 
@@ -779,7 +779,7 @@ __fastcall TfmMain::TfmMain(TComponent* Owner) : TForm(Owner)
 	//----------------------------------------------------
 	// Start Key. 1,2,3,4...
 
-	for (int i = 0; i < ARRAYSIZE(m_SkillKeys); i++)
+	for (unsigned int i = 0; i < ARRAYSIZE(m_SkillKeys); i++)
     {
 		m_SkillKeys[i].vkCode 	= 0x31 + i;
 		m_SkillKeys[i].scanCode = 0x02 + i;
@@ -789,7 +789,7 @@ __fastcall TfmMain::TfmMain(TComponent* Owner) : TForm(Owner)
 
 	//----------------------------------------------------
 	// Mouse init. data.
-	for(int i=0; i<ARRAYSIZE(m_nMouseDelay); i++) {
+	for(unsigned int i=0; i<ARRAYSIZE(m_nMouseDelay); i++) {
 		m_nMouseDelay[i] = 5000;
 	}
 
@@ -845,7 +845,7 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 //	m_SkillKey[6] = '7';
 //	m_SkillKey[7] = '8';
 
-	for(int i=0; i<ARRAYSIZE(m_nSkillDelay); i++) {
+	for(unsigned int i=0; i<ARRAYSIZE(m_nSkillDelay); i++) {
 		m_nSkillDelay[i] = 500;
 	}
 
@@ -860,7 +860,7 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 	m_pMenuKey[8] = Edit_Key_Game_7;
 	m_pMenuKey[9] = Edit_Key_Game_8;
 
-	for(int i=0; i<ARRAYSIZE(m_pMenuKey); i++) {
+	for(unsigned int i=0; i<ARRAYSIZE(m_pMenuKey); i++) {
 		if(m_pMenuKey[i]) m_pMenuKey[i]->Tag = i;
 	}
 
@@ -873,7 +873,7 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 	m_pSkillKey[6] = Edit_Key_Skill_7;
 	m_pSkillKey[7] = Edit_Key_Skill_8;
 
-	for(int i=0; i<ARRAYSIZE(m_pSkillKey); i++) {
+	for(unsigned int i=0; i<ARRAYSIZE(m_pSkillKey); i++) {
 		if(m_pSkillKey[i]) m_pSkillKey[i]->Tag = i;
 	}
 
@@ -886,7 +886,7 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 	m_pSkillDelay[6] = Edit_Delay_Skill_7;
 	m_pSkillDelay[7] = Edit_Delay_Skill_8;
 
-	for(int i=0; i<ARRAYSIZE(m_pSkillDelay); i++) {
+	for(unsigned int i=0; i<ARRAYSIZE(m_pSkillDelay); i++) {
 		if(m_pSkillDelay[i]) m_pSkillDelay[i]->Tag = i;
 	}
 
@@ -899,7 +899,7 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 	m_pChkBox_SkillEnable[6] = CheckBox_Skill_Enable_7;
 	m_pChkBox_SkillEnable[7] = CheckBox_Skill_Enable_8;
 
-	for(int i=0; i<ARRAYSIZE(m_pChkBox_SkillEnable); i++) {
+	for(unsigned int i=0; i<ARRAYSIZE(m_pChkBox_SkillEnable); i++) {
 		if(m_pChkBox_SkillEnable[i]) m_pChkBox_SkillEnable[i]->Tag = i;
 	}
 
@@ -945,7 +945,7 @@ void __fastcall TfmMain::FormShow(TObject *Sender)
 	SetMouseHook();
 	SetKeyHook();
 
-	DisplayUpdate();
+	DisplayUpdate(true);
 
 }
 //---------------------------------------------------------------------------
@@ -972,14 +972,14 @@ void __fastcall TfmMain::DisplayUpdate(bool bFirstUpdate)
 	Caption = m_sSaveFileName;
 
 	// Menu Key.
-	for(int i=0; i<ARRAYSIZE(m_pMenuKey); i++) {
+	for(unsigned int i=0; i<ARRAYSIZE(m_pMenuKey); i++) {
 		if(m_pMenuKey[i]) {
 			m_pMenuKey[i]->Text = m_sKeyName[m_SettingKeyHook[i].scanCode];
 		}
 	}
 
 	// Skill Key.
-	for(int i=0; i<ARRAYSIZE(m_pSkillKey); i++) {
+	for(unsigned int i=0; i<ARRAYSIZE(m_pSkillKey); i++) {
 		if(m_pSkillKey[i]) {
 			m_pSkillKey[i]->Text = m_sKeyName[m_SkillKeys[i].scanCode];
 			m_pSkillKey[i]->Color = m_bSkillEnabled[i] ? _MY_ENABLE_COLOR : clBtnFace;
@@ -1025,6 +1025,16 @@ void __fastcall TfmMain::DisplayUpdate(bool bFirstUpdate)
 	Edit_Delay_Mouse_2->Color 		= m_bMouseEnabled[1] ? _MY_ENABLE_COLOR : clBtnFace;
 	Edit_Delay_Mouse_1->OnChange 	= Edit_Delay_Mouse_1Change;
 	Edit_Delay_Mouse_2->OnChange 	= Edit_Delay_Mouse_1Change;
+
+	if(bFirstUpdate) {
+		ListBox_Bitmap->Clear();
+
+		for(int i=0; i <= m_BitmapManager.GetMaxKey(); i++) {
+			if(m_BitmapManager.IsKeyExist(i)) {
+				ListBox_Bitmap->Items->Add(i);
+			}
+		}
+	}
 
 }
 //---------------------------------------------------------------------------
@@ -1090,6 +1100,7 @@ void __fastcall TfmMain::Button_SendKeyEventClick(TObject *Sender)
 
 }
 //---------------------------------------------------------------------------
+
 void __fastcall TfmMain::Button_SendMouseClickClick(TObject *Sender)
 {
 	if(m_hTargetWnd != NULL) {
@@ -1208,12 +1219,6 @@ void __fastcall TfmMain::Button_CompareBitmapClick(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TfmMain::Button_SaveImageClick(TObject *Sender)
-{
-	Image_SaveImage->Picture->Bitmap->Assign(Image1->Picture->Bitmap);
-    Image_SaveImage->Repaint();
-}
-//---------------------------------------------------------------------------
 
 
 
@@ -1484,6 +1489,11 @@ void __fastcall TfmMain::SaveToFile(const String& filename)
 		nRet = stream->Write(&nLen, 					sizeof(nLen));
 		nRet = stream->Write(m_sSaveFileTitle.c_str(), 	m_sSaveFileTitle.Length() * sizeof(WideChar));
 
+
+		//-------------------------------------------
+		// bitmap.
+		m_BitmapManager.SaveToFile(stream);
+
 	}
 	__finally
 	{
@@ -1532,6 +1542,10 @@ void __fastcall TfmMain::LoadFromFile(const String& filename)
 				delete[] buffer;
 			}
 		}
+
+		//-------------------------------------------
+		// bitmap.
+		m_BitmapManager.LoadFromFile(stream);
 
 	}
 	__finally
@@ -1738,19 +1752,7 @@ void __fastcall TfmMain::Button_Start_StopClick(TObject *Sender)
 
 	DisplayUpdate(true);
 }
-//---------------------------------------------------------------------------
 
-void __fastcall TfmMain::Button_AllScreenCaptureClick(TObject *Sender)
-{
-	Hide();
-
-	fmAllScreen = new TfmAllScreen(this);
-	fmAllScreen->ShowModal();
-
-	delete fmAllScreen;
-
-	Show();
-}
 //---------------------------------------------------------------------------
 
 void __fastcall TfmMain::Button_AllScreenCaptureMouseMove(TObject *Sender, TShiftState Shift,
@@ -1773,4 +1775,148 @@ void __fastcall TfmMain::Button_AllScreenCaptureMouseUp(TObject *Sender, TMouseB
 //
 }
 //---------------------------------------------------------------------------
+
+
+void __fastcall TfmMain::Button_AllScreenCaptureClick(TObject *Sender)
+{
+	Hide();
+
+	Timer_ScreenCapture->Enabled = true;
+
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::Timer_ScreenCaptureTimer(TObject *Sender)
+{
+	Timer_ScreenCapture->Enabled = false;
+
+	fmAllScreen = new TfmAllScreen(this);
+	int nRet = fmAllScreen->ShowModal();
+
+	if(nRet == mrOk) {
+		//Graphics::TBitmap * m_bmpCapture = new Graphics::TBitmap;
+		//m_bmpCapture->Assign(fmAllScreen->m_bmpCapture);
+
+		TPoint StartPos = fmAllScreen->m_StartPoint;
+		TPoint EndPos   = fmAllScreen->m_EndPoint;
+
+		Image_Capture->Picture->Bitmap->Assign(fmAllScreen->m_bmpCapture);
+		Image_Capture->Repaint();
+
+		//delete m_bmpCapture;
+	}
+
+	delete fmAllScreen;
+
+	Show();
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TfmMain::Button_AddBitmapClick(TObject *Sender)
+{
+	int nKey   = m_BitmapManager.GetMaxKey() + 1;
+
+	m_BitmapManager.AddBitmap(nKey, Image_Capture->Picture->Bitmap);
+
+	ListBox_Bitmap->Items->Add(nKey);
+
+	StatusBar1->Panels->Items[10]->Text = nKey;
+
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::Button_DeleteBitmapClick(TObject *Sender)
+{
+	int nLastIndex = ListBox_Bitmap->ItemIndex;
+
+	if(nLastIndex >= 0
+	&& nLastIndex < ListBox_Bitmap->Count) {
+		int nKey = ListBox_Bitmap->Items->Strings[ListBox_Bitmap->ItemIndex].ToIntDef(-1);
+
+		if(nKey == -1 ) return;
+
+		m_BitmapManager.DeleteBitmap(nKey);
+		ListBox_Bitmap->DeleteSelected();
+
+		if(nLastIndex < ListBox_Bitmap->Count)
+			ListBox_Bitmap->ItemIndex = nLastIndex;
+		else if(nLastIndex > 0)
+            ListBox_Bitmap->ItemIndex = nLastIndex - 1;
+	}
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfmMain::Button_ChangeBitmapClick(TObject *Sender)
+{
+	if(ListBox_Bitmap->ItemIndex >= 0
+	&& ListBox_Bitmap->ItemIndex < ListBox_Bitmap->Count) {
+		int nKey = ListBox_Bitmap->Items->Strings[ListBox_Bitmap->ItemIndex].ToIntDef(-1);
+
+		if(nKey == -1 ) return;
+
+		m_BitmapManager.AddBitmap(nKey, Image_Capture->Picture->Bitmap);
+
+		DisplayUpdate(true);
+	}
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfmMain::ListBox_BitmapDrawItem(TWinControl *Control, int Index, TRect &Rect, TOwnerDrawState State)
+{
+    TListBox *ListBox = dynamic_cast<TListBox*>(Control);
+    if (!ListBox) return;
+
+    TCanvas *Canvas = ListBox->Canvas;
+	Canvas->FillRect(Rect);
+
+	int nKey = ListBox_Bitmap->Items->Strings[Index].ToIntDef(-1);
+
+	if(nKey == -1) return;
+
+	// 이미지 로드 및 출력
+	Graphics::TBitmap *bmp = m_BitmapManager.GetBitmap(nKey);
+
+	if (bmp)
+	{
+		Canvas->StretchDraw(TRect(Rect.Left + 2, Rect.Top + 2, Rect.Left + 50, Rect.Bottom - 2), bmp);
+
+		Canvas->Brush->Style = bsClear;
+		Canvas->Rectangle(Rect.Left + 2, Rect.Top + 2, Rect.Left + 50, Rect.Bottom - 2);
+	}
+
+	// 텍스트 출력
+	Canvas->TextOut(Rect.Left + 55, Rect.Top + 15, ListBox->Items->Strings[Index]);
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfmMain::ListBox_BitmapClick(TObject *Sender)
+{
+	try {
+		int nIndex = ListBox_Bitmap->ItemIndex;
+
+		if(nIndex < 0 || nIndex >= ListBox_Bitmap->Count) return;
+
+		int nKey = ListBox_Bitmap->Items->Strings[nIndex].ToIntDef(-1);
+
+		if(nKey == -1) return;
+
+		Image_SaveImage->Picture->Bitmap->Assign(m_BitmapManager.GetBitmap(nKey));
+	}
+	__finally {
+
+	}
+
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfmMain::ListBox_BitmapKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
+{
+	if(Key == 46) { // delete key.
+		Button_DeleteBitmapClick(NULL);
+	}
+}
+//---------------------------------------------------------------------------
+
+
 

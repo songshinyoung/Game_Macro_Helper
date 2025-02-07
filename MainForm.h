@@ -15,6 +15,8 @@
 #include <Vcl.Dialogs.hpp>
 
 #include "FrequenceTimer.h"
+#include "BitmapManager.h"
+#include <Vcl.ImgList.hpp>
 
 //---------------------------------------------------------------------------
 class TfmMain : public TForm
@@ -24,33 +26,6 @@ __published:	// IDE-managed Components
 	TPageControl *PageControl1;
 	TTabSheet *TabSheet1;
 	TTabSheet *TabSheet2;
-	TPanel *Panel1;
-	TImage *Image1;
-	TLabel *Label5;
-	TImage *Image_SaveImage;
-	TEdit *Edit_ProcessName;
-	TButton *btnFindWindow;
-	TEdit *Edit_KeyEvent;
-	TButton *Button_SendKeyEvent;
-	TPanel *Panel2;
-	TLabel *Label2;
-	TLabel *Label1;
-	TEdit *Edit_Mouse_X;
-	TEdit *Edit_Mouse_Y;
-	TButton *Button_SendMouseClick;
-	TPanel *Panel3;
-	TLabel *Label3;
-	TLabel *Label4;
-	TEdit *Edit_Capture_X;
-	TEdit *Edit_Capture_Y;
-	TButton *Button_ScreenCapture;
-	TButton *Button_MouseHookStart;
-	TButton *Button_MouseHookStop;
-	TCheckBox *CheckBox_AutoScreenCapture;
-	TButton *Button_CompareBitmap;
-	TButton *Button_SaveImage;
-	TButton *Button_SeqStart;
-	TMemo *Memo1;
 	TGroupBox *GroupBox1;
 	TGroupBox *GroupBox2;
 	TPanel *Panel4;
@@ -163,10 +138,45 @@ __published:	// IDE-managed Components
 	TTimer *Timer_WatchDog;
 	TEdit *Edit_TargetProName;
 	TLabel *Label40;
-	TLabel *Label41;
-	TLabel *Label42;
 	TComboBox *ComboBox_FileList;
 	TButton *Button_Start_Stop;
+	TTimer *Timer_ScreenCapture;
+	TPanel *Panel18;
+	TListBox *ListBox_Bitmap;
+	TPanel *Panel19;
+	TPanel *Panel14;
+	TImage *Image_Capture;
+	TMemo *Memo1;
+	TPanel *Panel1;
+	TImage *Image1;
+	TLabel *Label5;
+	TImage *Image_SaveImage;
+	TLabel *Label41;
+	TLabel *Label42;
+	TEdit *Edit_ProcessName;
+	TButton *btnFindWindow;
+	TEdit *Edit_KeyEvent;
+	TButton *Button_SendKeyEvent;
+	TPanel *Panel2;
+	TLabel *Label2;
+	TLabel *Label1;
+	TEdit *Edit_Mouse_X;
+	TEdit *Edit_Mouse_Y;
+	TButton *Button_SendMouseClick;
+	TPanel *Panel3;
+	TLabel *Label3;
+	TLabel *Label4;
+	TEdit *Edit_Capture_X;
+	TEdit *Edit_Capture_Y;
+	TButton *Button_ScreenCapture;
+	TButton *Button_MouseHookStart;
+	TButton *Button_MouseHookStop;
+	TCheckBox *CheckBox_AutoScreenCapture;
+	TButton *Button_CompareBitmap;
+	TButton *Button_SeqStart;
+	TButton *Button_AddBitmap;
+	TButton *Button_DeleteBitmap;
+	TButton *Button_ChangeBitmap;
 	TButton *Button_AllScreenCapture;
 	void __fastcall btnFindWindowClick(TObject *Sender);
 	void __fastcall Button_SendKeyEventClick(TObject *Sender);
@@ -177,7 +187,6 @@ __published:	// IDE-managed Components
 	void __fastcall FormDestroy(TObject *Sender);
 	void __fastcall Button_MouseHookStopClick(TObject *Sender);
 	void __fastcall Button_CompareBitmapClick(TObject *Sender);
-	void __fastcall Button_SaveImageClick(TObject *Sender);
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall Timer_SeqTimer(TObject *Sender);
 	void __fastcall Button_SeqStartClick(TObject *Sender);
@@ -204,6 +213,15 @@ __published:	// IDE-managed Components
           TShiftState Shift, int X, int Y);
 	void __fastcall Button_AllScreenCaptureMouseUp(TObject *Sender, TMouseButton Button,
           TShiftState Shift, int X, int Y);
+	void __fastcall Timer_ScreenCaptureTimer(TObject *Sender);
+	void __fastcall Button_AddBitmapClick(TObject *Sender);
+	void __fastcall ListBox_BitmapDrawItem(TWinControl *Control, int Index, TRect &Rect, TOwnerDrawState State);
+	void __fastcall ListBox_BitmapClick(TObject *Sender);
+	void __fastcall ListBox_BitmapKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
+	void __fastcall Button_DeleteBitmapClick(TObject *Sender);
+	void __fastcall Button_ChangeBitmapClick(TObject *Sender);
+
+
 private:	// User declarations
 
 	HWND 	m_hTargetWnd;
@@ -251,6 +269,8 @@ public:		// User declarations
 	bool	m_bMouseEnabled[2];
 	int     m_nMouseDelay[2];
 
+	TBitmapManager m_BitmapManager;
+
 
 	String  m_sSaveFileTitle;
 	String	m_sSaveFilePath;
@@ -272,5 +292,8 @@ public:		// User declarations
 };
 //---------------------------------------------------------------------------
 extern PACKAGE TfmMain *fmMain;
+
+int		g_MousePos_X;
+int		g_MousePos_Y;
 //---------------------------------------------------------------------------
 #endif
