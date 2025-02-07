@@ -1796,8 +1796,8 @@ void __fastcall TfmMain::Timer_ScreenCaptureTimer(TObject *Sender)
 		//Graphics::TBitmap * m_bmpCapture = new Graphics::TBitmap;
 		//m_bmpCapture->Assign(fmAllScreen->m_bmpCapture);
 
-		TPoint StartPos = fmAllScreen->m_StartPoint;
-		TPoint EndPos   = fmAllScreen->m_EndPoint;
+		m_StartPos = fmAllScreen->m_StartPoint;
+		m_EndPos   = fmAllScreen->m_EndPoint;
 
 		Image_Capture->Picture->Bitmap->Assign(fmAllScreen->m_bmpCapture);
 		Image_Capture->Repaint();
@@ -1814,9 +1814,11 @@ void __fastcall TfmMain::Timer_ScreenCaptureTimer(TObject *Sender)
 
 void __fastcall TfmMain::Button_AddBitmapClick(TObject *Sender)
 {
+	if(Image_Capture->Picture->Bitmap->Empty) return;
+
 	int nKey   = m_BitmapManager.GetMaxKey() + 1;
 
-	m_BitmapManager.AddBitmap(nKey, Image_Capture->Picture->Bitmap);
+	m_BitmapManager.AddBitmap(nKey, Image_Capture->Picture->Bitmap, m_StartPos, m_EndPos);
 
 	ListBox_Bitmap->Items->Add(nKey);
 
@@ -1847,13 +1849,15 @@ void __fastcall TfmMain::Button_DeleteBitmapClick(TObject *Sender)
 
 void __fastcall TfmMain::Button_ChangeBitmapClick(TObject *Sender)
 {
+	if(Image_Capture->Picture->Bitmap->Empty) return;
+
 	if(ListBox_Bitmap->ItemIndex >= 0
 	&& ListBox_Bitmap->ItemIndex < ListBox_Bitmap->Count) {
 		int nKey = ListBox_Bitmap->Items->Strings[ListBox_Bitmap->ItemIndex].ToIntDef(-1);
 
-		if(nKey == -1 ) return;
+		if(nKey <= -1 ) return;
 
-		m_BitmapManager.AddBitmap(nKey, Image_Capture->Picture->Bitmap);
+		m_BitmapManager.AddBitmap(nKey, Image_Capture->Picture->Bitmap, m_StartPos, m_EndPos);
 
 		DisplayUpdate(true);
 	}

@@ -19,12 +19,12 @@ TBitmapManager::~TBitmapManager() {
 void TBitmapManager::ClearAll() {
 
 	// 저장된 모든 비트맵을 해제
-	std::map<int, Graphics::TBitmap *>::iterator it;
+	std::map<int, TBitmapData *>::iterator it;
 
     for (it = bitmapMap.begin(); it != bitmapMap.end(); ++it)
 	{
-		Graphics::TBitmap * pBitmap = (Graphics::TBitmap*)(it->second);
-		delete pBitmap;
+		TBitmapData * pbitmapdata = (TBitmapData *)(it->second);
+		delete pbitmapdata;
 	}
 
 	bitmapMap.clear();
@@ -37,14 +37,14 @@ int TBitmapManager::GetMaxKey()
         return -1; // 비어있을 경우 -1 반환
     }
 
-    std::map<int, Graphics::TBitmap*>::iterator it = bitmapMap.end();
+    std::map<int, TBitmapData *>::iterator it = bitmapMap.end();
     --it; // map은 key 기준으로 정렬되므로 마지막 요소가 가장 큰 key
     return it->first;
 }
 
 bool TBitmapManager::IsKeyExist(int key)
 {
-	std::map<int, Graphics::TBitmap*>::iterator it = bitmapMap.find(key);
+	std::map<int, TBitmapData *>::iterator it = bitmapMap.find(key);
 
 	if (it != bitmapMap.end())
 	{
@@ -54,30 +54,31 @@ bool TBitmapManager::IsKeyExist(int key)
 	return false;
 }
 
-int TBitmapManager::AddBitmap(int key, Graphics::TBitmap * pBitmap)
+int TBitmapManager::AddBitmap(int key, Graphics::TBitmap * pBitmap, TPoint start, TPoint end)
 {
-	std::map<int, Graphics::TBitmap*>::iterator it = bitmapMap.find(key);
+	std::map<int, TBitmapData *>::iterator it = bitmapMap.find(key);
 
 	if (it != bitmapMap.end())
 	{
-		Graphics::TBitmap * pBitmap = (Graphics::TBitmap*)(it->second);
-		delete pBitmap;
+		TBitmapData * pBitmapData = (TBitmapData *)(it->second);
+		delete pBitmapData;
 	}
 
-	Graphics::TBitmap * bmp = new  Graphics::TBitmap();
-	bmp->Assign(pBitmap);
+	TBitmapData * pbitmapData = new  TBitmapData(pBitmap, start, end, key);
 
-	bitmapMap[key] = bmp;
+	bitmapMap[key] = pbitmapData;
+
+	return bitmapMap.size();
 }
 
 int TBitmapManager::DeleteBitmap(int key)
 {
-	std::map<int, Graphics::TBitmap*>::iterator it = bitmapMap.find(key);
+	std::map<int, TBitmapData *>::iterator it = bitmapMap.find(key);
 
 	if (it != bitmapMap.end())
     {
-		Graphics::TBitmap * pBitmap = (Graphics::TBitmap*)(it->second);
-		delete pBitmap;
+		TBitmapData * pBitmapData = (TBitmapData *)(it->second);
+		delete pBitmapData;
 
 		bitmapMap.erase(it);
 	}
@@ -88,11 +89,25 @@ int TBitmapManager::DeleteBitmap(int key)
 // 특정 인덱스 비트맵 반환
 Graphics::TBitmap* TBitmapManager::GetBitmap(int key)
 {
-	std::map<int, Graphics::TBitmap*>::iterator it = bitmapMap.find(key);
+	std::map<int, TBitmapData *>::iterator it = bitmapMap.find(key);
 
-    if (it != bitmapMap.end())
-    {
-		return (Graphics::TBitmap *)(it->second);
+	if (it != bitmapMap.end())
+	{
+		TBitmapData * pbitmapData = (TBitmapData *)(it->second);
+		return pbitmapData->bitmap;
+	}
+
+	return NULL;
+}
+
+TBitmapData * TBitmapManager::GetBitmpaData(int key)
+{
+	std::map<int, TBitmapData *>::iterator it = bitmapMap.find(key);
+
+	if (it != bitmapMap.end())
+	{
+		TBitmapData * pbitmapData = (TBitmapData *)(it->second);
+		return pbitmapData;
 	}
 
 	return NULL;
@@ -106,16 +121,16 @@ void TBitmapManager::SaveToFile(TFileStream* fs)
 		int count = bitmapMap.size();
 		fs->Write(&count, sizeof(int));
 
-		std::map<int, Graphics::TBitmap*>::iterator it;
+		std::map<int, TBitmapData *>::iterator it;
 		for (it = bitmapMap.begin(); it != bitmapMap.end(); ++it)
 		{
 			int key = it->first;
-			Graphics::TBitmap* bmp = it->second;
+			TBitmapData * bmpData = it->second;
 
 			fs->Write(&key, sizeof(int));
-			bmp->SaveToStream(fs);
+			bmpData->SaveToFile(fs);
 		}
-    }
+	}
     __finally {
 
     }
@@ -141,14 +156,14 @@ void TBitmapManager::LoadFromFile(TFileStream* fs)
 			int key;
 			fs->Read(&key, sizeof(int));
 
-			Graphics::TBitmap* bmp = new Graphics::TBitmap();
-			bmp->LoadFromStream(fs);
+			TBitmapData* bmpData = new TBitmapData();
+			bmpData->LoadFromFile(fs);
 
-			bitmapMap[key] = bmp;
+			bitmapMap[key] = bmpData;
 		}
 
     }
-    __finally {
+	__finally {
 
     }
 }

@@ -277,6 +277,10 @@ public:		// User declarations
 	String  m_sSaveFileName;
 
 	String 	m_sRootPath;
+
+	TPoint m_StartPos;
+	TPoint m_EndPos;
+
 	//--------------------------------
 
 	bool	m_bMacroKeyInputWait;	// Macro Key 입력 대기 중인 경우.
