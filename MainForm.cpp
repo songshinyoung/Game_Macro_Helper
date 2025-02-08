@@ -13,6 +13,11 @@
 #include <mmsystem.h> 	// PlaySound() 함수 호출 위해.
 
 
+
+#include <vector>
+#include <cmath>
+
+
 #pragma hdrstop
 
 #include "MainForm.h"
@@ -114,6 +119,30 @@ void SendKeyboardEvent(KBDLLHOOKSTRUCT &KeyInfo, bool keyDown)
 	SendInput(1, &input, sizeof(INPUT));
 }
 
+void SendKeyboardEvent(DWORD vkcode)
+{
+	KBDLLHOOKSTRUCT KeyInfo;
+
+	KeyInfo.vkCode 		= vkcode;
+	KeyInfo.scanCode 	= 0;
+	KeyInfo.flags 		= 0;
+
+	SendKeyboardEvent(KeyInfo, true);
+	SendKeyboardEvent(KeyInfo, false);
+}
+
+void SendKeyboardEvent(DWORD vkcode, DWORD scan, DWORD flag)
+{
+	KBDLLHOOKSTRUCT KeyInfo;
+
+	KeyInfo.vkCode 		= vkcode;
+	KeyInfo.scanCode 	= scan;
+	KeyInfo.flags 		= flag;
+
+	SendKeyboardEvent(KeyInfo, true);
+	SendKeyboardEvent(KeyInfo, false);
+}
+
 // 마우스 이동 이벤트 전송
 void SendMouseMove(int x, int y)
 {
@@ -201,25 +230,31 @@ void SendRightMouseClick(bool ButtonDown)
 ////---------------------------------------------------------------------------
 
 // 화면 캡처 및 HBITMAP 반환 함수
-HBITMAP CaptureScreenRegion(int screenX, int screenY)
+Graphics::TBitmap * CaptureScreenRegion(int screenX, int screenY, int width, int height)
 {
-    const int width = 100;  // 캡처 영역 너비
-    const int height = 100; // 캡처 영역 높이
-
-    HDC hScreenDC = GetDC(0); // 전체 화면 DC
-    HDC hMemDC = CreateCompatibleDC(hScreenDC);
+	HDC hScreenDC 	= GetDC(0); // 전체 화면 DC
+	HDC hMemDC 		= CreateCompatibleDC(hScreenDC);
     HBITMAP hBitmap = CreateCompatibleBitmap(hScreenDC, width, height);
 	HBITMAP hOldBmp = (HBITMAP)SelectObject(hMemDC, hBitmap);
 
-    // 화면 영역 캡처
+	// 화면 영역 캡처
     BitBlt(hMemDC, 0, 0, width, height, hScreenDC, screenX, screenY, SRCCOPY);
     SelectObject(hMemDC, hOldBmp); // 비트맵 선택 해제
 
-    // 리소스 정리
-    DeleteDC(hMemDC);
-    ReleaseDC(0, hScreenDC);
+	Graphics::TBitmap *bmp = new Graphics::TBitmap();
+	bmp->Handle 		= hBitmap;  	// HBITMAP 설정
+//	bmp->HandleType 	= bmDIB;       	// DIB 형식 사용
+//	bmp->PixelFormat 	= pf32bit;    	// 32비트 색상 포맷
+//	bmp->Canvas->LineTo(1,1);
 
-    return hBitmap; // HBITMAP 반환
+	// 리소스 정리
+    DeleteDC(hMemDC);
+	ReleaseDC(0, hScreenDC);
+
+	// DeleteObject(hBitmap);
+	//return hBitmap; // HBITMAP 반환
+
+	return bmp;
 }
 
 
@@ -524,6 +559,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 						switch(pKbdLLHook->scanCode) {
 							case 0x01:
+								//fmMain->Timer_Seq->Enabled = false;
 								// ESC
 								break;
 
@@ -531,6 +567,44 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 								// Print Screen
 								if(pKbdLLHook->flags == 1) {
 									fmMain->ScreenCaptureClick(g_MousePos_X, g_MousePos_Y);
+								}
+								break;
+
+							case 0x3F:
+								if(pKbdLLHook->vkCode == 0x74) { // F5
+									if(fmMain->m_hTargetWnd && (fmMain->Timer_Seq->Enabled != true)) {
+										PlaySound("C:\\Windows\\Media\\Speech On.wav", NULL, SND_ALIAS | SND_ASYNC);
+										g_bMacroStarted = false;
+										fmMain->m_eMainStatus = SEQ_RE_GAME_S;
+										fmMain->m_nSeqStep = 0;
+										fmMain->Timer_Seq->Enabled = true;
+
+									}
+									else if(fmMain->Timer_Seq->Enabled){
+										PlaySound("C:\\Windows\\Media\\Speech Off.wav", NULL, SND_ALIAS | SND_ASYNC);
+										fmMain->Timer_Seq->Enabled = false;
+										fmMain->m_eMainStatus = SEQ_MAIN_NONE;
+									}
+
+								}
+								break;
+
+							case 0x40:
+								if(pKbdLLHook->vkCode == 0x75) { // F6
+									if(fmMain->m_hTargetWnd && (fmMain->Timer_Seq->Enabled != true)) {
+										PlaySound("C:\\Windows\\Media\\Speech On.wav", NULL, SND_ALIAS | SND_ASYNC);
+										g_bMacroStarted = false;
+										fmMain->m_eMainStatus = SEQ_ITEM_SALE_S;
+										fmMain->m_nSeqStep = 0;
+										fmMain->Timer_Seq->Enabled = true;
+
+									}
+									else if(fmMain->Timer_Seq->Enabled){
+										PlaySound("C:\\Windows\\Media\\Speech Off.wav", NULL, SND_ALIAS | SND_ASYNC);
+										fmMain->Timer_Seq->Enabled = false;
+										fmMain->m_eMainStatus = SEQ_MAIN_NONE;
+									}
+
 								}
 								break;
 						}
@@ -615,50 +689,92 @@ void RemoveKeyHook()
 // Compare Bitmap.
 //---------------------------------------------------------------------------
 // 두 비트맵 비교 및 유사도 계산 함수
-double CompareBitmaps(Graphics::TBitmap* bmp1, Graphics::TBitmap* bmp2)
-{
-    // 1. 기본 조건 체크
-    if(bmp1->Width != bmp2->Width || bmp1->Height != bmp2->Height)
-        return 0.0;  // 크기가 다르면 0% 유사
 
-    const int width = bmp1->Width;
-    const int height = bmp1->Height;
-    int matchCount = 0;
+std::vector<int> ComputeHistogram(TBitmap* bmp) {
+    std::vector<int> histogram(256, 0); // 그레이스케일 기준 (256개)
 
-    // 2. 픽셀 포맷 통일 (32비트 ARGB)
-    bmp1->PixelFormat = pf32bit;
-    bmp2->PixelFormat = pf32bit;
+    bmp->PixelFormat = pf8bit; // 8비트 그레이스케일 변환
 
-    // 3. 이미지 잠금
-	bmp1->Canvas->Lock();
-	bmp2->Canvas->Lock();
+    int width = bmp->Width;
+    int height = bmp->Height;
+    int y, x;
 
-    try
-    {
-		// 4. 픽셀 단위 비교
-        for(int y = 0; y < height; y++)
-        {
-            // 스캔라인 포인터 가져오기
-            unsigned int* p1 = (unsigned int*)bmp1->ScanLine[y];
-            unsigned int* p2 = (unsigned int*)bmp2->ScanLine[y];
-
-            for(int x = 0; x < width; x++)
-            {
-                // Alpha 채널 무시하고 RGB만 비교
-                if((p1[x] & 0x00FFFFFF) == (p2[x] & 0x00FFFFFF))
-                    matchCount++;
-            }
+    for (y = 0; y < height; y++) {
+        Byte* scanLine = (Byte*)bmp->ScanLine[y];
+        for (x = 0; x < width; x++) {
+            histogram[scanLine[x]]++;
         }
     }
-    __finally
-    {
-		bmp1->Canvas->Unlock();
-		bmp2->Canvas->Unlock();
+    return histogram;
+}
+
+double CompareHistograms(const std::vector<int>& hist1, const std::vector<int>& hist2) {
+    double sum = 0.0;
+    int i;
+
+    for (i = 0; i < 256; i++) {
+        sum += std::abs(hist1[i] - hist2[i]);
+    }
+    return 1.0 - (sum / (256.0 * 255.0)); // 1에 가까울수록 유사
+}
+
+double CompareBitmaps(TBitmap* bmp1, TBitmap* bmp2) {
+    if (bmp1->Width != bmp2->Width || bmp1->Height != bmp2->Height) {
+        return 0.0;
     }
 
-    // 5. 유사도 계산
-    return (matchCount / (double)(width * height)) * 100.0;
+    std::vector<int> hist1 = ComputeHistogram(bmp1);
+    std::vector<int> hist2 = ComputeHistogram(bmp2);
+
+	return CompareHistograms(hist1, hist2) * 100.0;
 }
+
+
+
+//double CompareBitmaps(Graphics::TBitmap* bmp1, Graphics::TBitmap* bmp2)
+//{
+//    // 1. 기본 조건 체크
+//    if(bmp1->Width != bmp2->Width || bmp1->Height != bmp2->Height)
+//        return 0.0;  // 크기가 다르면 0% 유사
+//
+//    const int width = bmp1->Width;
+//    const int height = bmp1->Height;
+//    int matchCount = 0;
+//
+//    // 2. 픽셀 포맷 통일 (32비트 ARGB)
+//    bmp1->PixelFormat = pf32bit;
+//    bmp2->PixelFormat = pf32bit;
+//
+//    // 3. 이미지 잠금
+//	bmp1->Canvas->Lock();
+//	bmp2->Canvas->Lock();
+//
+//    try
+//    {
+//		// 4. 픽셀 단위 비교
+//        for(int y = 0; y < height; y++)
+//        {
+//            // 스캔라인 포인터 가져오기
+//            unsigned int* p1 = (unsigned int*)bmp1->ScanLine[y];
+//            unsigned int* p2 = (unsigned int*)bmp2->ScanLine[y];
+//
+//            for(int x = 0; x < width; x++)
+//            {
+//                // Alpha 채널 무시하고 RGB만 비교
+//                if((p1[x] & 0x00FFFFFF) == (p2[x] & 0x00FFFFFF))
+//                    matchCount++;
+//            }
+//        }
+//    }
+//    __finally
+//    {
+//		bmp1->Canvas->Unlock();
+//		bmp2->Canvas->Unlock();
+//    }
+//
+//    // 5. 유사도 계산
+//    return (matchCount / (double)(width * height)) * 100.0;
+//}
 //---------------------------------------------------------------------------
 
 
@@ -704,6 +820,8 @@ __fastcall TfmMain::TfmMain(TComponent* Owner) : TForm(Owner)
 	g_bMacroStarted			= false;
 
 	m_bTargetProcessFound	= false;
+
+	m_eMainStatus			= SEQ_MAIN_NONE;
 
 
 	ZeroMemory(m_bSkillEnabled, 	sizeof(m_bSkillEnabled));
@@ -797,6 +915,16 @@ __fastcall TfmMain::TfmMain(TComponent* Owner) : TForm(Owner)
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::FormCreate(TObject *Sender)
 {
+	this->Width = 858;
+
+	if(Screen->MonitorCount >= 2) {
+		for(int i=0; i<Screen->MonitorCount ; i++) {
+			if(Screen->Monitors[i]->Primary != true) {
+				this->Left  = Screen->Monitors[i]->Left + ((Screen->Monitors[i]->Width / 2) - (this->Width / 2));
+				break;
+			}
+		}
+	}
 	//------------------------------------------------------
 	// create Key Nama table.
 	DWORD   scancode = 0;
@@ -1132,21 +1260,22 @@ void __fastcall TfmMain::ScreenCaptureClick(int screenX, int screenY)
 	screenX -= 50;
 	screenY -= 50;
 
-	HBITMAP hBitmap = CaptureScreenRegion(screenX, screenY);
-    if (!hBitmap) {
+	// HBITMAP hBitmap = CaptureScreenRegion(screenX, screenY, 100, 100);
+	Graphics::TBitmap *bmp = CaptureScreenRegion(screenX, screenY, 100, 100);
+	if (!bmp) {
         ShowMessage("화면 캡처 실패");
         return;
     }
 
-	TColor centerColor = GetCenterPixelColor(hBitmap);
+//	TColor centerColor = GetCenterPixelColor(hBitmap);
+//
+//	String sColor = "0x" + IntToHex(centerColor, 6);
+//	StatusBar1->Panels->Items[1]->Text = sColor;
 
-	String sColor = "0x" + IntToHex(centerColor, 6);
-	StatusBar1->Panels->Items[1]->Text = sColor;
 
-
-    // TImage에 출력
-    Graphics::TBitmap *bmp = new Graphics::TBitmap();
-	bmp->Handle = hBitmap;  		// HBITMAP 설정
+//    // TImage에 출력
+//	Graphics::TBitmap *bmp = new Graphics::TBitmap();
+//	bmp->Handle = hBitmap;  		// HBITMAP 설정
 
 	Image1->Picture->Bitmap = bmp;  // TImage에 출력
 	Image1->Picture->Bitmap->Canvas->Pen->Color 	= clGray;
@@ -1156,7 +1285,7 @@ void __fastcall TfmMain::ScreenCaptureClick(int screenX, int screenY)
 	Image1->Repaint();
 
 	delete bmp;  					// TBitmap 해제
-	DeleteObject(hBitmap);  		// HBITMAP 해제 (중요!)
+//	DeleteObject(hBitmap);  		// HBITMAP 해제 (중요!)
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::Button_ScreenCaptureClick(TObject *Sender)
@@ -1165,6 +1294,7 @@ void __fastcall TfmMain::Button_ScreenCaptureClick(TObject *Sender)
 	int screenY = Edit_Capture_Y->Text.ToIntDef(0);
 
 	ScreenCaptureClick(screenX, screenY);
+
 }
 //---------------------------------------------------------------------------
 
@@ -1224,55 +1354,20 @@ void __fastcall TfmMain::Button_CompareBitmapClick(TObject *Sender)
 
 void __fastcall TfmMain::Timer_SeqTimer(TObject *Sender)
 {
-	switch(m_nSeqStep) {
-		case 0:
-			SendMouseMove(-1390, 98);
-			m_nSeqStep = 100;
+	switch(m_eMainStatus) {
+		case SEQ_MAIN_NONE:
 			break;
 
-		case 100:
-			SendLeftMouseClick(true);
-			SendLeftMouseClick(false);
-			m_DelayTimer.StartDelay(1000);
-			m_nSeqStep = 150;
+		case SEQ_RE_GAME_S:
+			SeqRegame();
 			break;
 
-		case 150:
-			if(m_DelayTimer.IsDelayEnd()) m_nSeqStep = 200;
+		case SEQ_ITEM_SALE_S:
+			SeqSaleItem();
 			break;
 
-		case 200:
-			SendMouseMove(-580, 400);
-			m_nSeqStep = 300;
+		default:
 			break;
-
-		case 300:
-			SendLeftMouseClick(true);
-			SendLeftMouseClick(false);
-			m_DelayTimer.StartDelay(1000);
-			m_nSeqStep = 350;
-			break;
-
-		case 350:
-			if(m_DelayTimer.IsDelayEnd()) m_nSeqStep = 400;
-			break;
-
-		case 400:
-			SendMouseMove(-950, 560);
-			m_nSeqStep = 500;
-			break;
-
-		case 500:
-			SendLeftMouseClick(true);
-			SendLeftMouseClick(false);
-			m_nSeqStep = 600;
-			break;
-
-		case 600:
-			Timer_Seq->Enabled = false;
-			m_nSeqStep = 0;
-			break;
-
 	}
 }
 //---------------------------------------------------------------------------
@@ -1280,6 +1375,7 @@ void __fastcall TfmMain::Timer_SeqTimer(TObject *Sender)
 void __fastcall TfmMain::Button_SeqStartClick(TObject *Sender)
 {
 	m_nSeqStep = 0;
+	g_bMacroStarted = false;
 	Timer_Seq->Enabled = true;
 }
 //---------------------------------------------------------------------------
@@ -1435,6 +1531,16 @@ void __fastcall TfmMain::Timer_DisplayTimer(TObject *Sender)
 
 	Edit_TargetProName->Enabled 		= !g_bMacroStarted;
 	Edit_Title->Enabled 				= !g_bMacroStarted;
+
+	if(Timer_Seq->Enabled) {
+		Button_SeqStart->Caption = Button_SeqStart->Tag != 0 ? "Started" : "";
+		Button_SeqStart->Tag = Button_SeqStart->Tag != 0 ? 0 : 1;
+	}
+	else {
+		Button_SeqStart->Tag = 0;
+        Button_SeqStart->Caption = "Start";
+	}
+
 }
 //---------------------------------------------------------------------------
 
@@ -1796,8 +1902,8 @@ void __fastcall TfmMain::Timer_ScreenCaptureTimer(TObject *Sender)
 		//Graphics::TBitmap * m_bmpCapture = new Graphics::TBitmap;
 		//m_bmpCapture->Assign(fmAllScreen->m_bmpCapture);
 
-		m_StartPos = fmAllScreen->m_StartPoint;
-		m_EndPos   = fmAllScreen->m_EndPoint;
+		m_StartPos = fmAllScreen->m_MouseStart;
+		m_EndPos   = fmAllScreen->m_MouseEnd;
 
 		Image_Capture->Picture->Bitmap->Assign(fmAllScreen->m_bmpCapture);
 		Image_Capture->Repaint();
@@ -1921,6 +2027,529 @@ void __fastcall TfmMain::ListBox_BitmapKeyDown(TObject *Sender, WORD &Key, TShif
 	}
 }
 //---------------------------------------------------------------------------
+int __fastcall TfmMain::SeqRegame()
+{
+	switch(m_nSeqStep) {
+		case 0:
+			// 마을로 이동.
+			SetForegroundWindow(m_hTargetWnd);
+			::Sleep(100);
 
+			SendKeyboardEvent('T');
+			m_DelayTimer.StartDelay(6000);
+			m_nSeqStep = 10;
+			break;
+
+		case 10:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// ESC Key
+				SendKeyboardEvent(0x1b, 0x01, 0); // ESC.
+				m_DelayTimer.StartDelay(1000);
+				m_nSeqStep = 20;
+			}
+			break;
+
+		case 20:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 게임 나가기 선택
+				SendMouseMove(244, 481);
+				::Sleep(200);
+				SendLeftMouseClick(true);
+				::Sleep(200);
+				SendLeftMouseClick(false);
+				m_DelayTimer.StartDelay(5000);
+				m_nSeqStep = 30;
+			}
+			break;
+
+		case 30:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 게임 시작 선택.
+				SendMouseMove(236, 515);
+				::Sleep(50);
+				SendLeftMouseClick(true);
+				::Sleep(100);
+				SendLeftMouseClick(false);
+				m_DelayTimer.StartDelay(8000);
+				m_nSeqStep = 90;
+			}
+			break;
+
+		case 90:
+			if(m_DelayTimer.IsDelayEnd()) {
+				SendKeyboardEvent('M');  // 세계 지도 열기
+				m_DelayTimer.StartDelay(100);
+				m_nSeqStep = 100;
+			}
+			break;
+
+		case 100:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 세계지도에서 전체 서역 지도 보기
+				SendMouseMove(897, 128);
+				SendLeftMouseClick(true);
+				SendLeftMouseClick(false);
+				m_DelayTimer.StartDelay(100);
+				m_nSeqStep = 200;
+			}
+			break;
+
+		case 200:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 1막 열기
+				//SendMouseMove(736, 619);
+
+				// 2막
+				//SendMouseMove(1088, 520);
+
+				// 3막
+				SendMouseMove(710, 388);
+
+
+
+				SendLeftMouseClick(true);
+				SendLeftMouseClick(false);
+				m_DelayTimer.StartDelay(100);
+				m_nSeqStep = 300;
+			}
+			break;
+
+		case 300:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 레오릭의 저택 안뜰 선택.
+				// SendMouseMove(583, 583);
+
+				// 대성당 지하 1층 (검은 버섯)
+				// SendMouseMove(1100, 289);
+
+				// 달구르 오아시스 (무지개물)
+				// SendMouseMove(484, 519);
+
+				// 코르시크 교각 (재잘재잘)
+				SendMouseMove(801, 461);
+
+				SendLeftMouseClick(true);
+				SendLeftMouseClick(false);
+				m_DelayTimer.StartDelay(3000);
+				m_nSeqStep = 400;
+			}
+			break;
+
+		case 400:
+			if(m_DelayTimer.IsDelayEnd()) {
+
+
+
+
+				// 왼쪽 마우스 스킬 잠시 사용. (다발 사격)
+				KBDLLHOOKSTRUCT KeyInfo;
+
+				KeyInfo.vkCode 		= 0xC0;
+				KeyInfo.scanCode 	= 0x29;
+				KeyInfo.flags 		= 0;
+
+				SendKeyboardEvent(KeyInfo, true);
+
+				::Sleep(100);
+				SendLeftMouseClick(true);
+				::Sleep(1000);
+				SendLeftMouseClick(false);
+
+				SendKeyboardEvent(KeyInfo, false);
+
+				SendKeyboardEvent('1');  //
+				SendKeyboardEvent('2');  //
+				SendKeyboardEvent('3');  //
+				SendKeyboardEvent('4');  //
+
+				m_nSeqStep = 9000;
+				break;
+				//////////////////////////////////////////////////////////
+
+
+				// 레오릭의 저택 안뜰 로 이동...
+
+				SendMouseMove(450, 100);
+				SendRightMouseClick(true);
+				m_DelayTimer.StartDelay(2000);
+				m_nSeqStep = 500;
+			}
+			break;
+
+		case 500:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 이동 완료...
+				SendRightMouseClick(false);
+				m_DelayTimer.StartDelay(500);
+				m_nSeqStep = 600;
+			}
+			break;
+
+		case 600:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 레오릭의 저택 안뜰 들어가기
+				SendMouseMove(954, 445);
+				::Sleep(300);
+				SendLeftMouseClick(true);
+				::Sleep(100);
+				SendLeftMouseClick(false);
+				m_DelayTimer.StartDelay(10);
+				m_nSeqStep = 700;
+			}
+			break;
+
+		case 700:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 레오릭의 저택 중간 쯤 이동. 스킬 시전
+				SendMouseMove(550, 103);
+				::Sleep(100);
+
+				SendKeyboardEvent('1');  //
+				SendKeyboardEvent('2');  //
+				SendKeyboardEvent('3');  //
+				SendKeyboardEvent('4');  //
+
+				SendRightMouseClick(true);
+
+				m_DelayTimer.StartDelay(3000);
+				m_nSeqStep = 800;
+			}
+			break;
+
+		case 800:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 벽 난로 앞까지 이동.
+				SendRightMouseClick(false);
+				::Sleep(100);
+
+				SendMouseMove(1283, 137);
+				::Sleep(100);
+
+				SendKeyboardEvent('1');  // 세계 지도 열기
+				SendKeyboardEvent('2');  // 세계 지도 열기
+
+				SendRightMouseClick(true);
+
+				m_DelayTimer.StartDelay(2500);
+				m_nSeqStep = 900;
+
+			}
+			else {
+            	SendKeyboardEvent('2');  //
+			}
+			break;
+
+		case 900:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 벽 난로 앞까지 이동 완료.
+				SendRightMouseClick(false);
+
+				m_DelayTimer.StartDelay(100);
+				m_nSeqStep = 9000;
+
+			}
+			break;
+
+		case 9000:
+			Timer_Seq->Enabled = false;
+			m_nSeqStep = 0;
+			break;
+
+	}
+
+	StatusBar1->Panels->Items[10]->Text =  m_nSeqStep;
+
+	return m_nSeqStep;
+}
+
+//------------------------------------------------------------------------------
+int __fastcall TfmMain::SeqSaleItem()
+{
+	// 장인 창이 이미 열려 있어야 한다.
+
+	switch(m_nSeqStep) {
+		case 0:
+			// 분해 Tab 선택.
+			SendMouseMove(515, 485);
+			::Sleep(100);
+			SendLeftMouseClick(true);
+			::Sleep(50);
+			SendLeftMouseClick(false);
+			m_nSeqStep = 100;
+			break;
+
+		case 100:
+			// 흰색 팔기.
+			SendMouseMove(254, 290);
+			::Sleep(100);
+			SendLeftMouseClick(true);
+			::Sleep(50);
+			SendLeftMouseClick(false);
+
+			m_DelayTimer.StartTimer(500);
+			m_nSeqStep = 200;
+			break;
+
+		case 200:
+			// 확인 창 출력 확인.
+			{
+				TBitmapData *pBitmapData = m_BitmapManager.GetBitmpaData(4); // 확인창 버튼 data 가져 오기.
+
+				if(pBitmapData) {
+					Graphics::TBitmap * pBitmap = CaptureScreenRegion(	pBitmapData->StartPos.X,
+																		pBitmapData->StartPos.Y,
+																		pBitmapData->EndPos.X - pBitmapData->StartPos.X,
+																		pBitmapData->EndPos.Y - pBitmapData->StartPos.Y);
+
+					Image1->Picture->Bitmap = pBitmap;
+					Image1->Repaint();
+
+
+					double similarity = CompareBitmaps(pBitmap, pBitmapData->bitmap);
+
+					delete pBitmap;
+
+					Memo1->Lines->Add(similarity);
+
+					if(similarity >= 95 ) {
+						// 확인 창이 뜸.
+
+						SendMouseMove(852, 375);
+						::Sleep(100);
+						SendLeftMouseClick(true);
+						::Sleep(50);
+						SendLeftMouseClick(false);
+
+						m_DelayTimer.StartTimer(300);
+						m_nSeqStep = 300;
+					}
+					else if(m_DelayTimer.IsTimeOut()) {
+						// 창이 뜨지 않음.
+						m_DelayTimer.StartTimer(100);
+						m_nSeqStep = 300;
+					}
+				}
+				else {
+					m_nSeqStep = 300;
+				}
+			}
+			break;
+
+		case 300:
+			// 파랭이 팔기.
+			SendMouseMove(317, 290);
+			::Sleep(100);
+			SendLeftMouseClick(true);
+			::Sleep(50);
+			SendLeftMouseClick(false);
+
+			m_DelayTimer.StartTimer(500);
+			m_nSeqStep = 400;
+			break;
+
+		case 400:
+			// 확인 창 출력 확인.
+			{
+				TBitmapData *pBitmapData = m_BitmapManager.GetBitmpaData(4); // 확인창 버튼 data 가져 오기.
+
+				if(pBitmapData) {
+					Graphics::TBitmap * pBitmap = CaptureScreenRegion(	pBitmapData->StartPos.X,
+																		pBitmapData->StartPos.Y,
+																		pBitmapData->EndPos.X - pBitmapData->StartPos.X,
+																		pBitmapData->EndPos.Y - pBitmapData->StartPos.Y);
+
+					Image1->Picture->Bitmap->Assign(pBitmap);
+
+					double similarity = CompareBitmaps(pBitmap, pBitmapData->bitmap);
+
+					delete pBitmap;
+
+					Memo1->Lines->Add(similarity);
+
+					if(similarity >= 95 ) {
+						// 확인 창이 뜸.
+
+						SendMouseMove(852, 375);
+						::Sleep(100);
+						SendLeftMouseClick(true);
+						::Sleep(50);
+						SendLeftMouseClick(false);
+
+						m_DelayTimer.StartTimer(300);
+						m_nSeqStep = 500;
+					}
+					else if(m_DelayTimer.IsTimeOut()) {
+						// 창이 뜨지 않음.
+						m_DelayTimer.StartTimer(100);
+						m_nSeqStep = 500;
+					}
+				}
+				else {
+					m_nSeqStep = 500;
+				}
+			}
+			break;
+
+
+		case 500:
+			// 노랭이 팔기.
+			SendMouseMove(387, 290);
+			::Sleep(100);
+			SendLeftMouseClick(true);
+			::Sleep(50);
+			SendLeftMouseClick(false);
+
+			m_DelayTimer.StartTimer(500);
+			m_nSeqStep = 600;
+			break;
+
+		case 600:
+			// 확인 창 출력 확인.
+			{
+				TBitmapData *pBitmapData = m_BitmapManager.GetBitmpaData(4); // 확인창 버튼 data 가져 오기.
+
+				if(pBitmapData) {
+					Graphics::TBitmap * pBitmap = CaptureScreenRegion(	pBitmapData->StartPos.X,
+																		pBitmapData->StartPos.Y,
+																		pBitmapData->EndPos.X - pBitmapData->StartPos.X,
+																		pBitmapData->EndPos.Y - pBitmapData->StartPos.Y);
+
+					Image1->Picture->Bitmap = pBitmap;
+
+					double similarity = CompareBitmaps(pBitmap, pBitmapData->bitmap);
+
+					delete pBitmap;
+
+					Memo1->Lines->Add(similarity);
+
+					if(similarity >= 95 ) {
+						// 확인 창이 뜸.
+
+						SendMouseMove(852, 375);
+						::Sleep(100);
+						SendLeftMouseClick(true);
+						::Sleep(50);
+						SendLeftMouseClick(false);
+
+						m_DelayTimer.StartTimer(300);
+						m_nSeqStep = 700;
+					}
+					else if(m_DelayTimer.IsTimeOut()) {
+						// 창이 뜨지 않음.
+						m_DelayTimer.StartTimer(100);
+						m_nSeqStep = 700;
+					}
+				}
+				else {
+					m_nSeqStep = 700;
+				}
+			}
+			break;
+
+		//---------------------------------------------------
+		// 전설 팔기.
+
+
+		case 700:
+			// 전설 팔기 선택.
+			SendMouseMove(169, 290);
+			::Sleep(50);
+			SendLeftMouseClick(true);
+			::Sleep(50);
+			SendLeftMouseClick(false);
+
+			m_nInventoryX = 0;
+			m_nInventoryY = 0;
+
+			m_DelayTimer.StartTimer(100);
+			m_nSeqStep = 800;
+			break;
+
+		case 800:
+			if(m_DelayTimer.IsTimeOut()) {
+				if(m_nInventoryX >= 8) {
+					m_nInventoryX = 0;
+					m_nInventoryY += 1;
+				}
+
+				if(m_nInventoryY >= 6 ) {
+					// 완료 됨.
+					m_nSeqStep = 9000;
+				}
+				else {
+					SendMouseMove(1529 + (m_nInventoryX * 50), 586 + (m_nInventoryY * 50));
+					::Sleep(50);
+					SendLeftMouseClick(true);
+					::Sleep(50);
+					SendLeftMouseClick(false);
+
+					m_DelayTimer.StartTimer(100);
+					m_nSeqStep = 900;
+
+					m_nInventoryX += 1;
+				}
+			}
+			break;
+
+		case 900:
+			// 확인 창 출력 확인.
+			{
+				TBitmapData *pBitmapData = m_BitmapManager.GetBitmpaData(4); // 확인창 버튼 data 가져 오기.
+
+				if(pBitmapData) {
+					Graphics::TBitmap * pBitmap = CaptureScreenRegion(	pBitmapData->StartPos.X,
+																		pBitmapData->StartPos.Y,
+																		pBitmapData->EndPos.X - pBitmapData->StartPos.X,
+																		pBitmapData->EndPos.Y - pBitmapData->StartPos.Y);
+
+					Image1->Picture->Bitmap = pBitmap;
+
+					double similarity = CompareBitmaps(pBitmap, pBitmapData->bitmap);
+
+					delete pBitmap;
+
+					Memo1->Lines->Add(similarity);
+
+					if(similarity >= 95 ) {
+						// 확인 창이 뜸.
+
+						SendMouseMove(852, 375);
+						::Sleep(100);
+						SendLeftMouseClick(true);
+						::Sleep(50);
+						SendLeftMouseClick(false);
+
+						m_DelayTimer.StartTimer(300);
+						m_nSeqStep = 800;
+					}
+					else if(m_DelayTimer.IsTimeOut()) {
+						// 창이 뜨지 않음.
+						m_DelayTimer.StartTimer(100);
+						m_nSeqStep = 800;
+					}
+				}
+				else {
+					m_nSeqStep = 9000;
+				}
+			}
+			break;
+
+
+
+
+		case 9000:
+			SendKeyboardEvent(0x1b, 0x01, 0); // ESC.
+			m_nSeqStep = 0;
+			Timer_Seq->Enabled = false;
+			break;
+	}
+
+	StatusBar1->Panels->Items[10]->Text =  m_nSeqStep;
+
+	return m_nSeqStep;
+}
+
+
+//------------------------------------------------------------------------------
 
 

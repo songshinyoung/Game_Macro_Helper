@@ -18,6 +18,15 @@
 #include "BitmapManager.h"
 #include <Vcl.ImgList.hpp>
 
+
+typedef enum {
+	SEQ_MAIN_NONE,
+	SEQ_RE_GAME_S,
+	SEQ_ITEM_SALE_S,
+
+	SEQ_MAIN_MAX
+} eMainStepType;
+
 //---------------------------------------------------------------------------
 class TfmMain : public TForm
 {
@@ -224,18 +233,17 @@ __published:	// IDE-managed Components
 
 private:	// User declarations
 
-	HWND 	m_hTargetWnd;
+	// --------------------------------
+	// Sequence
 
 
+	int __fastcall SeqRegame();
+	int __fastcall SeqSaleItem();
 
+	int 	m_nInventoryX;
+	int     m_nInventoryY;
 
-	int		m_nSeqStep;
-
-
-	// DWORD	m_SkillKey[10];
-
-
-
+	// --------------------------------
 
 	TFrequencyTimer m_DelayTimer;
 
@@ -259,6 +267,10 @@ public:		// User declarations
 	void __fastcall ScreenCaptureClick(int screenX, int screenY);
 
 	String  m_sKeyName[256];
+
+	HWND 	m_hTargetWnd;
+	int		m_nSeqStep;
+	eMainStepType m_eMainStatus;
 
 	// Save Items --------------------
 	KBDLLHOOKSTRUCT m_SkillKeys[10];

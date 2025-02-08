@@ -64,7 +64,11 @@ public:		// User declarations
 	Graphics::TBitmap * m_bmpCapture;
 
 	TPoint	m_StartPoint;	// Image 상에서의 좌표기 때문에 - 값은 없다.
-	TPoint	m_EndPoint;  	// Image 상에서의 좌표기 때문에 - 값은 없다.�
+	TPoint	m_EndPoint;  	// Image 상에서의 좌표기 때문에 - 값은 없다.
+
+	TPoint	m_MouseStart;	// Mouse의 절대 좌표가 저장 된다.
+	TPoint	m_MouseEnd;  	// Mouse의 절대 좌표가 저장 된다.
+
 	//------------------------------------------
 };
 //---------------------------------------------------------------------------

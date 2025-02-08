@@ -340,7 +340,11 @@ void __fastcall TfmAllScreen::Image1MouseDown(TObject *Sender, TMouseButton Butt
 	if(m_bCapture) return;
 
 	m_StartPoint.X     = X;
-    m_StartPoint.Y     = Y;
+	m_StartPoint.Y     = Y;
+
+	m_MouseStart.X     = X + m_nAllScreenLeft;
+	m_MouseStart.Y     = Y + m_nAllScreenTop;
+
 
     m_bMouseDown    = true;
 }
@@ -351,7 +355,11 @@ void __fastcall TfmAllScreen::Image1MouseUp(TObject *Sender, TMouseButton Button
 	if(m_bCapture) return;
 
 	m_EndPoint.X     = X;
-    m_EndPoint.Y     = Y;
+	m_EndPoint.Y     = Y;
+
+	m_MouseEnd.X     = X + m_nAllScreenLeft;
+	m_MouseEnd.Y     = Y + m_nAllScreenTop;
+
 
 	m_bMouseDown    = false;
 

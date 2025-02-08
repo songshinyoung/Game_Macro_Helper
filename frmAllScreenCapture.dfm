@@ -45,8 +45,6 @@ object fmAllScreen: TfmAllScreen
     ShowCaption = False
     TabOrder = 0
     Visible = False
-    ExplicitTop = 238
-    ExplicitWidth = 651
     object BitBtn1: TBitBtn
       Left = 8
       Top = 6
@@ -81,7 +79,5 @@ object fmAllScreen: TfmAllScreen
         Width = 50
       end>
     Visible = False
-    ExplicitTop = 302
-    ExplicitWidth = 196
   end
 end
