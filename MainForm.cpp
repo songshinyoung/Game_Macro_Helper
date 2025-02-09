@@ -838,6 +838,8 @@ __fastcall TfmMain::TfmMain(TComponent* Owner) : TForm(Owner)
 	ZeroMemory(m_pMenuKey, 			sizeof(m_pMenuKey));
 	ZeroMemory(m_pChkBox_SkillEnable, 	sizeof(m_pChkBox_SkillEnable));
 
+	ZeroMemory(m_nInventoryStatus, 	sizeof(m_nInventoryStatus));
+
 
 	m_bMacroKeyInputWait		= false;	// Macro Key 입력 대기 중인 경우.
 	m_nMacroKeyInputType		= 0;	// 0 : Start / End. 1 : Menu Key, 2 : Skill Key.
@@ -2315,7 +2317,7 @@ int __fastcall TfmMain::SeqSaleItem()
 						// 확인 창이 뜸.
 
 						SendMouseMove(852, 375);
-						::Sleep(100);
+						::Sleep(50);
 						SendLeftMouseClick(true);
 						::Sleep(50);
 						SendLeftMouseClick(false);
@@ -2370,7 +2372,7 @@ int __fastcall TfmMain::SeqSaleItem()
 						// 확인 창이 뜸.
 
 						SendMouseMove(852, 375);
-						::Sleep(100);
+						::Sleep(50);
 						SendLeftMouseClick(true);
 						::Sleep(50);
 						SendLeftMouseClick(false);
@@ -2426,7 +2428,7 @@ int __fastcall TfmMain::SeqSaleItem()
 						// 확인 창이 뜸.
 
 						SendMouseMove(852, 375);
-						::Sleep(100);
+						::Sleep(50);
 						SendLeftMouseClick(true);
 						::Sleep(50);
 						SendLeftMouseClick(false);
@@ -2461,32 +2463,90 @@ int __fastcall TfmMain::SeqSaleItem()
 			m_nInventoryX = 0;
 			m_nInventoryY = 0;
 
-			m_DelayTimer.StartTimer(100);
+			m_TackTimer.StartTimer(0);
+			m_DelayTimer.StartTimer(50);
+
 			m_nSeqStep = 800;
 			break;
 
 		case 800:
 			if(m_DelayTimer.IsTimeOut()) {
-				if(m_nInventoryX >= 8) {
-					m_nInventoryX = 0;
-					m_nInventoryY += 1;
+
+				TBitmapData *pBitmapData = m_BitmapManager.GetBitmpaData(5); // Inventory Empty Image 가져 오기.
+
+				Graphics::TBitmap * pBitmap = NULL;
+				int nCaptureWidht  = pBitmapData->EndPos.X - pBitmapData->StartPos.X;
+				int nCaptureHeight = pBitmapData->EndPos.Y - pBitmapData->StartPos.Y;
+				int nCaptureStartX = 0;
+				int nCaptureStartY = 0;
+				bool bFound = false;
+				AnsiString sMsg;
+
+				for(int y=m_nInventoryY; y<6; y++) {
+					m_nInventoryX = 2;
+
+					for(int x=m_nInventoryX; x<10; x++) {
+
+						nCaptureStartX = pBitmapData->StartPos.X + (int)((double)x * 50.33);
+						nCaptureStartY = pBitmapData->StartPos.Y + (int)((double)y * 50.33);
+
+						pBitmap = CaptureScreenRegion(	nCaptureStartX,	nCaptureStartY,
+														nCaptureWidht,  nCaptureHeight);
+
+						Image1->Picture->Bitmap = pBitmap;
+
+						double similarity = CompareBitmaps(pBitmap, pBitmapData->bitmap);
+
+						delete pBitmap;
+
+						if(similarity < 99.0) {
+							bFound = true;
+
+							m_nInventoryX = x;
+							m_nInventoryY = y;
+
+							sMsg.printf("Inventory (%d, %d) : %0.2f Item found. ", x, y, similarity);
+							Memo1->Lines->Add(sMsg);
+
+							break;
+						}
+						else {
+							sMsg.printf("Inventory (%d, %d) : %0.2f Empty. ", x, y, similarity);
+							Memo1->Lines->Add(sMsg);
+						}
+					}
+
+					if(bFound) {
+                    	break;
+					}
 				}
 
-				if(m_nInventoryY >= 6 ) {
-					// 완료 됨.
-					m_nSeqStep = 9000;
-				}
-				else {
-					SendMouseMove(1529 + (m_nInventoryX * 50), 586 + (m_nInventoryY * 50));
-					::Sleep(50);
+				if(bFound) {
+					SendMouseMove(nCaptureStartX + 15, nCaptureStartY + 20);
+					::Sleep(30);
 					SendLeftMouseClick(true);
-					::Sleep(50);
+					::Sleep(30);
 					SendLeftMouseClick(false);
 
-					m_DelayTimer.StartTimer(100);
+					m_DelayTimer.StartTimer(200);
 					m_nSeqStep = 900;
 
 					m_nInventoryX += 1;
+					if(m_nInventoryX >= 10) {
+						m_nInventoryY += 1;
+                        m_nInventoryX = 0;
+					}
+				}
+				else {
+					double dLapTime = m_TackTimer.GetLapTimeMM();
+					AnsiString sMsg;
+					sMsg.printf("Inventory Sale Time : %d", (int)dLapTime);
+					Memo1->Lines->Add(sMsg);
+
+					m_DelayTimer.StartTimer(200);
+
+					// 완료 됨.
+					m_nSeqStep = 9000;
 				}
 			}
 			break;
@@ -2494,6 +2554,12 @@ int __fastcall TfmMain::SeqSaleItem()
 		case 900:
 			// 확인 창 출력 확인.
 			{
+#if 0
+				SendKeyboardEvent(0x0D);
+				m_DelayTimer.StartTimer(50);
+				m_nSeqStep = 800;
+#else
+
 				TBitmapData *pBitmapData = m_BitmapManager.GetBitmpaData(4); // 확인창 버튼 data 가져 오기.
 
 				if(pBitmapData) {
@@ -2512,14 +2578,13 @@ int __fastcall TfmMain::SeqSaleItem()
 
 					if(similarity >= 95 ) {
 						// 확인 창이 뜸.
-
 						SendMouseMove(852, 375);
-						::Sleep(100);
-						SendLeftMouseClick(true);
 						::Sleep(50);
+						SendLeftMouseClick(true);
+						::Sleep(30);
 						SendLeftMouseClick(false);
 
-						m_DelayTimer.StartTimer(300);
+						m_DelayTimer.StartTimer(100);
 						m_nSeqStep = 800;
 					}
 					else if(m_DelayTimer.IsTimeOut()) {
@@ -2531,6 +2596,8 @@ int __fastcall TfmMain::SeqSaleItem()
 				else {
 					m_nSeqStep = 9000;
 				}
+
+#endif
 			}
 			break;
 
@@ -2538,9 +2605,11 @@ int __fastcall TfmMain::SeqSaleItem()
 
 
 		case 9000:
-			SendKeyboardEvent(0x1b, 0x01, 0); // ESC.
-			m_nSeqStep = 0;
-			Timer_Seq->Enabled = false;
+			if(m_DelayTimer.IsDelayEnd()) {
+				SendKeyboardEvent(0x1b, 0x01, 0); // ESC.
+				m_nSeqStep = 0;
+				Timer_Seq->Enabled = false;
+			}
 			break;
 	}
 

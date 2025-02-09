@@ -252,6 +252,8 @@ private:	// User declarations
 
 	TFrequencyTimer m_TargetWindowTimer;
 
+	TFrequencyTimer m_TackTimer;
+
 	TEdit * m_pMenuKey[10];
 	TEdit * m_pSkillKey[10];
 	TEdit * m_pSkillDelay[10];
@@ -271,6 +273,9 @@ public:		// User declarations
 	HWND 	m_hTargetWnd;
 	int		m_nSeqStep;
 	eMainStepType m_eMainStatus;
+
+	int		m_nInventoryStatus[6][10]; 	// 0 : Empty, 1 : Àü¼³ ÅÛ.
+
 
 	// Save Items --------------------
 	KBDLLHOOKSTRUCT m_SkillKeys[10];
