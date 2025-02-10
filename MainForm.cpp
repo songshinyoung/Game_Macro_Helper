@@ -2546,7 +2546,7 @@ int __fastcall TfmMain::SeqSaleItem()
 					m_DelayTimer.StartTimer(200);
 
 					// ¿Ï·á µÊ.
-					m_nSeqStep = 9000;
+					m_nSeqStep = 1000;
 				}
 			}
 			break;
@@ -2602,7 +2602,29 @@ int __fastcall TfmMain::SeqSaleItem()
 			break;
 
 
+		case 1000:
+			SendMouseMove(513, 613);
+			::Sleep(30);
+			SendLeftMouseClick(true);
+			::Sleep(30);
+			SendLeftMouseClick(false);
 
+			m_DelayTimer.StartTimer(50);
+			m_nSeqStep = 1100;
+			break;
+
+		case 1100:
+			if(m_DelayTimer.IsDelayEnd()) {
+				SendMouseMove(269, 531);
+				::Sleep(30);
+				SendLeftMouseClick(true);
+				::Sleep(30);
+				SendLeftMouseClick(false);
+
+				m_DelayTimer.StartTimer(200);
+				m_nSeqStep = 9000;
+			}
+			break;
 
 		case 9000:
 			if(m_DelayTimer.IsDelayEnd()) {
