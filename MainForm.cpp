@@ -11,7 +11,7 @@
 #include <System.SysUtils.hpp>
 
 #include <mmsystem.h> 	// PlaySound() 함수 호출 위해.
-
+#include <Math.hpp>
 
 
 #include <vector>
@@ -688,14 +688,16 @@ void RemoveKeyHook()
 //---------------------------------------------------------------------------
 // Compare Bitmap.
 //---------------------------------------------------------------------------
+#if 1
+// ChatGPT  방식. (이미지를 Gray로 변경 후 전체 이미지에 256 Color 의 갯수를 가지로 이미지를 비교한다. )
 // 두 비트맵 비교 및 유사도 계산 함수
 
 std::vector<int> ComputeHistogram(TBitmap* bmp) {
-    std::vector<int> histogram(256, 0); // 그레이스케일 기준 (256개)
+	std::vector<int> histogram(256, 0); // 그레이스케일 기준 (256개)
 
     bmp->PixelFormat = pf8bit; // 8비트 그레이스케일 변환
 
-    int width = bmp->Width;
+	int width  = bmp->Width;
     int height = bmp->Height;
     int y, x;
 
@@ -728,6 +730,87 @@ double CompareBitmaps(TBitmap* bmp1, TBitmap* bmp2) {
 
 	return CompareHistograms(hist1, hist2) * 100.0;
 }
+
+#else
+
+
+//---------------------------------------------------------------------------
+// DeepSeek  방식. (이미지를 Gray로 변경후 8x8 Sizse로 변경 후 각 bit를 평균 밝기 대비 0 or 1로 변경 후 64 bit를 생성하여 두 이미지 비교 한다. )
+// 1. 유틸리티 함수: 8x8 그레이스케일 변환
+void ConvertTo8x8Grayscale(TBitmap* src, BYTE dest[8][8])
+{
+    TBitmap* temp = new TBitmap();
+    try {
+        // 1단계: 8x8로 축소
+        temp->SetSize(8, 8);
+        temp->Canvas->StretchDraw(Rect(0, 0, 8, 8), src);
+
+        // 2단계: 그레이스케일 변환
+        for(int y = 0; y < 8; y++) {
+            BYTE* row = (BYTE*)temp->ScanLine[y];
+            for(int x = 0; x < 8; x++) {
+                BYTE r = row[x*4 + 2];
+                BYTE g = row[x*4 + 1];
+                BYTE b = row[x*4];
+                dest[y][x] = static_cast<BYTE>(0.299*r + 0.587*g + 0.114*b);
+			}
+        }
+    }
+    __finally {
+        delete temp;
+    }
+}
+
+// 2. 평균 해시(aHash) 생성
+UInt64 CalculateAverageHash(TBitmap* bmp)
+{
+    BYTE gray[8][8];
+    ConvertTo8x8Grayscale(bmp, gray);
+
+    // 평균 계산
+    double avg = 0;
+    for(int y = 0; y < 8; y++)
+        for(int x = 0; x < 8; x++)
+            avg += gray[y][x];
+    avg /= 64;
+
+    // 해시 생성
+	UInt64 hash = 0;
+    for(int y = 0; y < 8; y++) {
+        for(int x = 0; x < 8; x++) {
+            hash <<= 1;
+            hash |= (gray[y][x] > avg) ? 1 : 0;
+        }
+    }
+    return hash;
+}
+
+// 3. 해밍 거리 기반 유사도 계산
+double CalculateSimilarity(UInt64 hash1, UInt64 hash2)
+{
+    UInt64 xorVal = hash1 ^ hash2;
+    int distance = 0;
+    while(xorVal) {
+        distance++;
+        xorVal &= xorVal - 1; // 비트 카운트 최적화
+    }
+    return (1.0 - (distance / 64.0)) * 100.0; // 유사도 %
+}
+
+// 사용 예제
+double CompareBitmaps(TBitmap* bmp1, TBitmap* bmp2)
+{
+    UInt64 hash1 = CalculateAverageHash(bmp1);
+    UInt64 hash2 = CalculateAverageHash(bmp2);
+
+    double similarity = CalculateSimilarity(hash1, hash2);
+
+	return similarity;
+}
+
+#endif
+
+
 
 
 
@@ -840,6 +923,7 @@ __fastcall TfmMain::TfmMain(TComponent* Owner) : TForm(Owner)
 
 	ZeroMemory(m_nInventoryStatus, 	sizeof(m_nInventoryStatus));
 
+	ZeroMemory(m_pMenuItem, 		sizeof(m_pMenuItem));
 
 	m_bMacroKeyInputWait		= false;	// Macro Key 입력 대기 중인 경우.
 	m_nMacroKeyInputType		= 0;	// 0 : Start / End. 1 : Menu Key, 2 : Skill Key.
@@ -1061,6 +1145,11 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 	LoadCfgFilesToComboBox(m_sRootPath, m_sSaveFileName, ComboBox_FileList);
 
 	//-------------------------------------------
+	m_pMenuItem[RE_ROOM_SHINBONE] 		= MenuReRoom1;
+	m_pMenuItem[RE_ROOM_RAINBOW_WATER] 	= MenuReRoom2;
+	m_pMenuItem[RE_ROOM_BLACK_MUSHROOM] = MenuReRoom3;
+	m_pMenuItem[RE_ROOM_GIBBERING] 		= MenuReRoom4;
+
 }
 //---------------------------------------------------------------------------
 
@@ -1166,6 +1255,10 @@ void __fastcall TfmMain::DisplayUpdate(bool bFirstUpdate)
 		}
 	}
 
+	// 방 다시 만들기 옵션 표기.
+	if(m_pMenuItem[m_eReMakeRoomType]) {
+	 	m_pMenuItem[m_eReMakeRoomType]->Checked = true;
+	}
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::btnFindWindowClick(TObject *Sender)
@@ -1592,12 +1685,29 @@ void __fastcall TfmMain::SaveToFile(const String& filename)
 		nRet = stream->Write(m_bMouseEnabled, 			sizeof(m_bMouseEnabled));
 		nRet = stream->Write(m_nMouseDelay, 			sizeof(m_nMouseDelay));
 
+		nRet = stream->Write(&m_eReMakeRoomType, 		sizeof(m_eReMakeRoomType));
 
 		int nLen = m_sSaveFileTitle.Length();
 		nRet = stream->Write(&nLen, 					sizeof(nLen));
 		nRet = stream->Write(m_sSaveFileTitle.c_str(), 	m_sSaveFileTitle.Length() * sizeof(WideChar));
+	}
+	__finally
+	{
+		delete stream;
+		stream = NULL;
+	}
 
 
+	//--------------------------------------------------------------------
+	// Bitmap Data Save (모든 케릭이 공유 한다. )
+	String sFullPath	= EnsureTrailingBackslash(m_sRootPath) + BITMAP_SAVE_FILE_NAME;
+
+	stream = new TFileStream(sFullPath, fmCreate);
+
+	if(stream == NULL) return;
+
+	try
+	{
 		//-------------------------------------------
 		// bitmap.
 		m_BitmapManager.SaveToFile(stream);
@@ -1607,6 +1717,7 @@ void __fastcall TfmMain::SaveToFile(const String& filename)
 	{
 		delete stream;
 	}
+	//--------------------------------------------------------------------
 
 
 	TStringList * pFileNameList = new TStringList;
@@ -1637,6 +1748,8 @@ void __fastcall TfmMain::LoadFromFile(const String& filename)
 		nRet = stream->Read(m_bMouseEnabled, 	sizeof(m_bMouseEnabled));
 		nRet = stream->Read(m_nMouseDelay, 		sizeof(m_nMouseDelay));
 
+		nRet = stream->Read(&m_eReMakeRoomType,	sizeof(m_eReMakeRoomType));
+
 		int len = 0;
 		nRet = stream->Read(&len, sizeof(len)); // 길이 읽기
 
@@ -1651,8 +1764,30 @@ void __fastcall TfmMain::LoadFromFile(const String& filename)
 			}
 		}
 
-		//-------------------------------------------
-		// bitmap.
+//		//-------------------------------------------
+//		// bitmap.
+//		m_BitmapManager.LoadFromFile(stream);
+
+	}
+	__finally
+	{
+		delete stream;
+		stream = NULL;
+	}
+
+
+	//--------------------------------------------------------------------
+	// Bitmap Data Save (모든 케릭이 공유 한다. )
+	String sFullPath	= EnsureTrailingBackslash(m_sRootPath) + BITMAP_SAVE_FILE_NAME;
+
+	stream = new TFileStream(sFullPath, fmOpenRead);
+
+	if(stream == NULL) return;
+
+	try
+	{
+		//-------------------------------------------
+		// bitmap.
 		m_BitmapManager.LoadFromFile(stream);
 
 	}
@@ -1660,6 +1795,9 @@ void __fastcall TfmMain::LoadFromFile(const String& filename)
 	{
 		delete stream;
 	}
+	//--------------------------------------------------------------------
+
+
 
 	TStringList * pFileNameList = new TStringList;
 
@@ -1736,6 +1874,18 @@ void __fastcall TfmMain::Saveas1Click(TObject *Sender)
 void __fastcall TfmMain::Exit1Click(TObject *Sender)
 {
 	Close();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::MenuReRoom1Click(TObject *Sender)
+{
+	TMenuItem * pItem = dynamic_cast<TMenuItem *>(Sender);
+
+	if(pItem == NULL) return;
+
+	eReMakeRoomType eIndex = (eReMakeRoomType)(pItem->Tag);
+
+	m_eReMakeRoomType = eIndex;
+
 }
 //---------------------------------------------------------------------------
 
@@ -2098,16 +2248,21 @@ int __fastcall TfmMain::SeqRegame()
 
 		case 200:
 			if(m_DelayTimer.IsDelayEnd()) {
-				// 1막 열기
-				//SendMouseMove(736, 619);
 
-				// 2막
-				//SendMouseMove(1088, 520);
-
-				// 3막
-				SendMouseMove(710, 388);
-
-
+				switch(m_eReMakeRoomType) {
+					case RE_ROOM_SHINBONE:		// 정강이 뼈
+						SendMouseMove(736, 619);  	// 1막
+						break;
+					case RE_ROOM_RAINBOW_WATER:	// 무지개물
+						SendMouseMove(1088, 520);   // 2막
+						break;
+					case RE_ROOM_BLACK_MUSHROOM:// 검은 버섯
+						SendMouseMove(736, 619);  	// 1막
+						break;
+					case RE_ROOM_GIBBERING:		// 재잘재잘 보석
+						SendMouseMove(710, 388); 	// 3막
+						break;
+				}
 
 				SendLeftMouseClick(true);
 				SendLeftMouseClick(false);
@@ -2118,17 +2273,21 @@ int __fastcall TfmMain::SeqRegame()
 
 		case 300:
 			if(m_DelayTimer.IsDelayEnd()) {
-				// 레오릭의 저택 안뜰 선택.
-				// SendMouseMove(583, 583);
 
-				// 대성당 지하 1층 (검은 버섯)
-				// SendMouseMove(1100, 289);
-
-				// 달구르 오아시스 (무지개물)
-				// SendMouseMove(484, 519);
-
-				// 코르시크 교각 (재잘재잘)
-				SendMouseMove(801, 461);
+				switch(m_eReMakeRoomType) {
+					case RE_ROOM_SHINBONE:		// 정강이 뼈
+						SendMouseMove(583, 583);   // 레오릭의 저택 안뜰 선택.
+						break;
+					case RE_ROOM_RAINBOW_WATER:	// 무지개물
+						SendMouseMove(484, 519);   // 달구르 오아시스 (무지개물)
+						break;
+					case RE_ROOM_BLACK_MUSHROOM:// 검은 버섯
+						SendMouseMove(1100, 289);  // 대성당 지하 1층 (검은 버섯)
+						break;
+					case RE_ROOM_GIBBERING:		// 재잘재잘 보석
+						SendMouseMove(801, 461);   // 코르시크 교각 (재잘재잘)
+						break;
+				}
 
 				SendLeftMouseClick(true);
 				SendLeftMouseClick(false);
@@ -2139,9 +2298,6 @@ int __fastcall TfmMain::SeqRegame()
 
 		case 400:
 			if(m_DelayTimer.IsDelayEnd()) {
-
-
-
 
 				// 왼쪽 마우스 스킬 잠시 사용. (다발 사격)
 				KBDLLHOOKSTRUCT KeyInfo;
@@ -2168,13 +2324,27 @@ int __fastcall TfmMain::SeqRegame()
 				break;
 				//////////////////////////////////////////////////////////
 
+				switch(m_eReMakeRoomType) {
+					case RE_ROOM_SHINBONE:		// 정강이 뼈
+						// 레오릭의 저택 안뜰 로 이동...
+						SendMouseMove(450, 100);
+						SendRightMouseClick(true);
+						m_DelayTimer.StartDelay(2000);
+						m_nSeqStep = 500;
+						break;
 
-				// 레오릭의 저택 안뜰 로 이동...
+					case RE_ROOM_RAINBOW_WATER:	// 무지개물
+						m_nSeqStep = 9000;
+						break;
 
-				SendMouseMove(450, 100);
-				SendRightMouseClick(true);
-				m_DelayTimer.StartDelay(2000);
-				m_nSeqStep = 500;
+					case RE_ROOM_BLACK_MUSHROOM:// 검은 버섯
+						m_nSeqStep = 9000;
+						break;
+
+					case RE_ROOM_GIBBERING:		// 재잘재잘 보석
+						m_nSeqStep = 9000;
+						break;
+				}
 			}
 			break;
 

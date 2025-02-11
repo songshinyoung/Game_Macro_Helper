@@ -27,6 +27,20 @@ typedef enum {
 	SEQ_MAIN_MAX
 } eMainStepType;
 
+typedef enum {
+	RE_ROOM_SHINBONE,
+	RE_ROOM_RAINBOW_WATER,
+	RE_ROOM_BLACK_MUSHROOM,
+	RE_ROOM_GIBBERING,
+	RE_ROOM_MAX
+} eReMakeRoomType;
+
+#ifndef UInt64
+typedef unsigned __int64 UInt64;
+#endif
+
+#define BITMAP_SAVE_FILE_NAME "BitmapData.dat"
+
 //---------------------------------------------------------------------------
 class TfmMain : public TForm
 {
@@ -187,6 +201,13 @@ __published:	// IDE-managed Components
 	TButton *Button_DeleteBitmap;
 	TButton *Button_ChangeBitmap;
 	TButton *Button_AllScreenCapture;
+	TImage *Image2;
+	TMenuItem *Option1;
+	TMenuItem *N3;
+	TMenuItem *MenuReRoom1;
+	TMenuItem *MenuReRoom2;
+	TMenuItem *MenuReRoom3;
+	TMenuItem *MenuReRoom4;
 	void __fastcall btnFindWindowClick(TObject *Sender);
 	void __fastcall Button_SendKeyEventClick(TObject *Sender);
 	void __fastcall Button_SendMouseClickClick(TObject *Sender);
@@ -229,6 +250,7 @@ __published:	// IDE-managed Components
 	void __fastcall ListBox_BitmapKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
 	void __fastcall Button_DeleteBitmapClick(TObject *Sender);
 	void __fastcall Button_ChangeBitmapClick(TObject *Sender);
+	void __fastcall MenuReRoom1Click(TObject *Sender);
 
 
 private:	// User declarations
@@ -259,6 +281,8 @@ private:	// User declarations
 	TEdit * m_pSkillDelay[10];
 
 	TCheckBox * m_pChkBox_SkillEnable[10];
+
+	TMenuItem * m_pMenuItem[RE_ROOM_MAX];
 
 	void __fastcall SaveToFile(const String& filename);
 	void __fastcall LoadFromFile(const String& filename);
@@ -297,6 +321,8 @@ public:		// User declarations
 
 	TPoint m_StartPos;
 	TPoint m_EndPos;
+
+	eReMakeRoomType m_eReMakeRoomType;
 
 	//--------------------------------
 
