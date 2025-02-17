@@ -6,6 +6,7 @@
 //---------------------------------------------------------------------------
 USEFORM("MainForm.cpp", fmMain);
 USEFORM("frmAllScreenCapture.cpp", fmAllScreen);
+USEFORM("frmViewImage.cpp", fmImageView);
 //---------------------------------------------------------------------------
 int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)
 {

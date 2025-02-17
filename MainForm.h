@@ -23,6 +23,7 @@ typedef enum {
 	SEQ_MAIN_NONE,
 	SEQ_RE_GAME_S,
 	SEQ_ITEM_SALE_S,
+	SEQ_ITEM_UPGRADE_S,
 
 	SEQ_MAIN_MAX
 } eMainStepType;
@@ -208,6 +209,27 @@ __published:	// IDE-managed Components
 	TMenuItem *MenuReRoom2;
 	TMenuItem *MenuReRoom3;
 	TMenuItem *MenuReRoom4;
+	TGroupBox *GroupBox5;
+	TPanel *Panel20;
+	TLabel *Label43;
+	TLabel *Label44;
+	TLabel *Label45;
+	TLabel *Label46;
+	TLabel *Label50;
+	TLabel *Label51;
+	TLabel *Label52;
+	TLabel *Label53;
+	TPanel *Panel21;
+	TEdit *Edit_SpecialKey_1;
+	TEdit *Edit_SpecialKey_2;
+	TEdit *Edit_SpecialKey_3;
+	TEdit *Edit_SpecialKey_4;
+	TEdit *Edit_SpecialKey_5;
+	TEdit *Edit_SpecialKey_6;
+	TEdit *Edit_SpecialKey_7;
+	TEdit *Edit_SpecialKey_8;
+	TRadioGroup *RadioGroup_ReRoom_Type;
+	TButton *Button_View_SkillSetting;
 	void __fastcall btnFindWindowClick(TObject *Sender);
 	void __fastcall Button_SendKeyEventClick(TObject *Sender);
 	void __fastcall Button_SendMouseClickClick(TObject *Sender);
@@ -251,6 +273,9 @@ __published:	// IDE-managed Components
 	void __fastcall Button_DeleteBitmapClick(TObject *Sender);
 	void __fastcall Button_ChangeBitmapClick(TObject *Sender);
 	void __fastcall MenuReRoom1Click(TObject *Sender);
+	void __fastcall Edit_SpecialKey_1Click(TObject *Sender);
+	void __fastcall RadioGroup_ReRoom_TypeClick(TObject *Sender);
+	void __fastcall Button_View_SkillSettingClick(TObject *Sender);
 
 
 private:	// User declarations
@@ -261,9 +286,13 @@ private:	// User declarations
 
 	int __fastcall SeqRegame();
 	int __fastcall SeqSaleItem();
+	int __fastcall SeqUpgradeItem();
 
 	int 	m_nInventoryX;
 	int     m_nInventoryY;
+
+	int     m_nInventoryPosX;
+	int     m_nInventoryPosY;
 
 	// --------------------------------
 
@@ -279,6 +308,7 @@ private:	// User declarations
 	TEdit * m_pMenuKey[10];
 	TEdit * m_pSkillKey[10];
 	TEdit * m_pSkillDelay[10];
+	TEdit * m_pEditSpecialKey[10];
 
 	TCheckBox * m_pChkBox_SkillEnable[10];
 
@@ -304,6 +334,7 @@ public:		// User declarations
 	// Save Items --------------------
 	KBDLLHOOKSTRUCT m_SkillKeys[10];
 	KBDLLHOOKSTRUCT m_SettingKeyHook[10]; 	// 0: Start Key, 1 ~ 9 Stop Key.
+	KBDLLHOOKSTRUCT m_SpecialKeys[10];		// Special Key, (Selling Items, Upgrade Items...)
 	bool	m_bSkillEnabled[10];
 	int		m_nSkillDelay[10];
 
@@ -327,7 +358,7 @@ public:		// User declarations
 	//--------------------------------
 
 	bool	m_bMacroKeyInputWait;	// Macro Key 입력 대기 중인 경우.
-	int		m_nMacroKeyInputType;	// 0 : Start / End,  1 : Skill Key.
+	int		m_nMacroKeyInputType;	// 0 : Start / End,  1 : Skill Key, 2 : Specail Key
 	int		m_nMacroKeyInputIndex;	// 현재 선택된 Key 입력칸 번호.
 
 	bool	m_bTargetProcessFound;	// 목표 프로세스를 찾은 경우 true.

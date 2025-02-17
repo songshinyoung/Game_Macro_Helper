@@ -22,6 +22,7 @@
 
 #include "MainForm.h"
 #include "frmAllScreenCapture.h"
+#include "frmViewImage.h"
 
 
 //---------------------------------------------------------------------------
@@ -525,6 +526,11 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 									fmMain->m_SkillKeys[fmMain->m_nMacroKeyInputIndex] 					= *pKbdLLHook;
 									fmMain->m_SkillKeys[fmMain->m_nMacroKeyInputIndex].scanCode 		= nScanCode;
 									break;
+
+								case 2: 	// Specal Key.
+									fmMain->m_SpecialKeys[fmMain->m_nMacroKeyInputIndex] 				= *pKbdLLHook;
+									fmMain->m_SpecialKeys[fmMain->m_nMacroKeyInputIndex].scanCode 		= nScanCode;
+									break;
 							}
 						}
 
@@ -557,6 +563,68 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 						}
 
 
+
+						// Remake Room.
+						if((g_bMacroStarted != true)
+						&& fmMain->m_bTargetProcessFound
+						&& (pKbdLLHook->scanCode == fmMain->m_SpecialKeys[0].scanCode)
+						&& (pKbdLLHook->vkCode == fmMain->m_SpecialKeys[0].vkCode)) {
+
+							if(fmMain->Timer_Seq->Enabled != true) {
+								PlaySound("C:\\Windows\\Media\\Speech On.wav", NULL, SND_ALIAS | SND_ASYNC);
+								fmMain->m_eMainStatus = SEQ_RE_GAME_S;
+								fmMain->m_nSeqStep = 0;
+								fmMain->Timer_Seq->Enabled = true;
+							}
+							else {
+								PlaySound("C:\\Windows\\Media\\Speech Off.wav", NULL, SND_ALIAS | SND_ASYNC);
+								fmMain->Timer_Seq->Enabled = false;
+								fmMain->m_eMainStatus = SEQ_MAIN_NONE;
+							}
+						}
+
+						// Selling Items.
+						if((g_bMacroStarted != true)
+						&& fmMain->m_bTargetProcessFound
+						&& (pKbdLLHook->scanCode == fmMain->m_SpecialKeys[1].scanCode)
+						&& (pKbdLLHook->vkCode == fmMain->m_SpecialKeys[1].vkCode)) {
+
+							if(fmMain->Timer_Seq->Enabled != true) {
+								PlaySound("C:\\Windows\\Media\\Speech On.wav", NULL, SND_ALIAS | SND_ASYNC);
+								g_bMacroStarted = false;
+								fmMain->m_eMainStatus = SEQ_ITEM_SALE_S;
+								fmMain->m_nSeqStep = 0;
+								fmMain->Timer_Seq->Enabled = true;
+							}
+							else {
+								PlaySound("C:\\Windows\\Media\\Speech Off.wav", NULL, SND_ALIAS | SND_ASYNC);
+								fmMain->Timer_Seq->Enabled = false;
+								fmMain->m_eMainStatus = SEQ_MAIN_NONE;
+							}
+						}
+
+						// Rare item upgrade.
+						if((g_bMacroStarted != true)
+						&& fmMain->m_bTargetProcessFound
+						&& (pKbdLLHook->scanCode == fmMain->m_SpecialKeys[2].scanCode)
+						&& (pKbdLLHook->vkCode == fmMain->m_SpecialKeys[2].vkCode)) {
+
+							if(fmMain->Timer_Seq->Enabled != true) {
+								PlaySound("C:\\Windows\\Media\\Speech On.wav", NULL, SND_ALIAS | SND_ASYNC);
+								g_bMacroStarted = false;
+								fmMain->m_eMainStatus = SEQ_ITEM_UPGRADE_S;
+								fmMain->m_nSeqStep = 0;
+								fmMain->Timer_Seq->Enabled = true;
+							}
+							else {
+								PlaySound("C:\\Windows\\Media\\Speech Off.wav", NULL, SND_ALIAS | SND_ASYNC);
+								fmMain->Timer_Seq->Enabled = false;
+								fmMain->m_eMainStatus = SEQ_MAIN_NONE;
+							}
+						}
+
+
+
 						switch(pKbdLLHook->scanCode) {
 							case 0x01:
 								//fmMain->Timer_Seq->Enabled = false;
@@ -570,43 +638,6 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 								}
 								break;
 
-							case 0x3F:
-								if(pKbdLLHook->vkCode == 0x74) { // F5
-									if(fmMain->m_hTargetWnd && (fmMain->Timer_Seq->Enabled != true)) {
-										PlaySound("C:\\Windows\\Media\\Speech On.wav", NULL, SND_ALIAS | SND_ASYNC);
-										g_bMacroStarted = false;
-										fmMain->m_eMainStatus = SEQ_RE_GAME_S;
-										fmMain->m_nSeqStep = 0;
-										fmMain->Timer_Seq->Enabled = true;
-
-									}
-									else if(fmMain->Timer_Seq->Enabled){
-										PlaySound("C:\\Windows\\Media\\Speech Off.wav", NULL, SND_ALIAS | SND_ASYNC);
-										fmMain->Timer_Seq->Enabled = false;
-										fmMain->m_eMainStatus = SEQ_MAIN_NONE;
-									}
-
-								}
-								break;
-
-							case 0x40:
-								if(pKbdLLHook->vkCode == 0x75) { // F6
-									if(fmMain->m_hTargetWnd && (fmMain->Timer_Seq->Enabled != true)) {
-										PlaySound("C:\\Windows\\Media\\Speech On.wav", NULL, SND_ALIAS | SND_ASYNC);
-										g_bMacroStarted = false;
-										fmMain->m_eMainStatus = SEQ_ITEM_SALE_S;
-										fmMain->m_nSeqStep = 0;
-										fmMain->Timer_Seq->Enabled = true;
-
-									}
-									else if(fmMain->Timer_Seq->Enabled){
-										PlaySound("C:\\Windows\\Media\\Speech Off.wav", NULL, SND_ALIAS | SND_ASYNC);
-										fmMain->Timer_Seq->Enabled = false;
-										fmMain->m_eMainStatus = SEQ_MAIN_NONE;
-									}
-
-								}
-								break;
 						}
 					}
 
@@ -910,6 +941,8 @@ __fastcall TfmMain::TfmMain(TComponent* Owner) : TForm(Owner)
 	ZeroMemory(m_bSkillEnabled, 	sizeof(m_bSkillEnabled));
 	ZeroMemory(m_nSkillDelay, 		sizeof(m_nSkillDelay));
 	ZeroMemory(m_SkillKeys, 		sizeof(m_SkillKeys));
+	ZeroMemory(m_SpecialKeys, 		sizeof(m_SpecialKeys));
+
 
 	ZeroMemory(m_SettingKeyHook, 	sizeof(m_SettingKeyHook));
 
@@ -920,6 +953,8 @@ __fastcall TfmMain::TfmMain(TComponent* Owner) : TForm(Owner)
 	ZeroMemory(m_pSkillDelay, 		sizeof(m_pSkillDelay));
 	ZeroMemory(m_pMenuKey, 			sizeof(m_pMenuKey));
 	ZeroMemory(m_pChkBox_SkillEnable, 	sizeof(m_pChkBox_SkillEnable));
+	ZeroMemory(m_pEditSpecialKey, 	sizeof(m_pEditSpecialKey));
+
 
 	ZeroMemory(m_nInventoryStatus, 	sizeof(m_nInventoryStatus));
 
@@ -996,6 +1031,24 @@ __fastcall TfmMain::TfmMain(TComponent* Owner) : TForm(Owner)
 	for(unsigned int i=0; i<ARRAYSIZE(m_nMouseDelay); i++) {
 		m_nMouseDelay[i] = 5000;
 	}
+
+	//----------------------------------------------------
+	//Specail Key.
+
+	// Remake room
+	m_SpecialKeys[0].vkCode		= 0x74; 	// F5
+	m_SpecialKeys[0].scanCode	= 0x3F;
+	m_SpecialKeys[0].flags		= 0;
+
+	// Selling Items. On/Off
+	m_SpecialKeys[1].vkCode		= 0x75; 	// F6
+	m_SpecialKeys[1].scanCode	= 0x40;
+	m_SpecialKeys[1].flags		= 0;
+
+	// Rare Items Upgrade.
+	m_SpecialKeys[2].vkCode		= 0x76; 	// F7
+	m_SpecialKeys[2].scanCode	= 0x41;
+	m_SpecialKeys[2].flags		= 0;
 
 }
 //---------------------------------------------------------------------------
@@ -1118,6 +1171,19 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 	}
 
 
+	m_pEditSpecialKey[0] = Edit_SpecialKey_1;
+	m_pEditSpecialKey[1] = Edit_SpecialKey_2;
+	m_pEditSpecialKey[2] = Edit_SpecialKey_3;
+	m_pEditSpecialKey[3] = Edit_SpecialKey_4;
+	m_pEditSpecialKey[4] = Edit_SpecialKey_5;
+	m_pEditSpecialKey[5] = Edit_SpecialKey_6;
+	m_pEditSpecialKey[6] = Edit_SpecialKey_7;
+	m_pEditSpecialKey[7] = Edit_SpecialKey_8;
+
+	for(unsigned int i=0; i<ARRAYSIZE(m_pEditSpecialKey); i++) {
+		if(m_pEditSpecialKey[i]) m_pEditSpecialKey[i]->Tag = i;
+	}
+
 	//-------------------------------------------
 	// 마지막 저장 파일 경로 읽어 오기.
 	TStringList * pFileNameList = new TStringList;
@@ -1227,6 +1293,13 @@ void __fastcall TfmMain::DisplayUpdate(bool bFirstUpdate)
 
 	}
 
+	// Special Key.
+	for(unsigned int i=0; i<ARRAYSIZE(m_pEditSpecialKey); i++) {
+		if(m_pEditSpecialKey[i]) {
+			m_pEditSpecialKey[i]->Text = m_sKeyName[m_SpecialKeys[i].scanCode];
+		}
+	}
+
 	// Mouse.
 	CheckBox_Mouse_Enable_1->OnClick = NULL;
 	CheckBox_Mouse_Enable_2->OnClick = NULL;
@@ -1259,6 +1332,8 @@ void __fastcall TfmMain::DisplayUpdate(bool bFirstUpdate)
 	if(m_pMenuItem[m_eReMakeRoomType]) {
 	 	m_pMenuItem[m_eReMakeRoomType]->Checked = true;
 	}
+
+	RadioGroup_ReRoom_Type->ItemIndex = m_eReMakeRoomType;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::btnFindWindowClick(TObject *Sender)
@@ -1461,6 +1536,10 @@ void __fastcall TfmMain::Timer_SeqTimer(TObject *Sender)
 			SeqSaleItem();
 			break;
 
+		case SEQ_ITEM_UPGRADE_S:
+			SeqUpgradeItem();
+			break;
+
 		default:
 			break;
 	}
@@ -1636,6 +1715,38 @@ void __fastcall TfmMain::Timer_DisplayTimer(TObject *Sender)
         Button_SeqStart->Caption = "Start";
 	}
 
+	if(Timer_Seq->Enabled) {
+		switch(m_eMainStatus) {
+			case SEQ_MAIN_NONE:
+				Edit_SpecialKey_1->Color = clWhite;
+				Edit_SpecialKey_2->Color = clWhite;
+				Edit_SpecialKey_3->Color = clWhite;
+				break;
+
+			case SEQ_RE_GAME_S:
+				Edit_SpecialKey_1->Color = Edit_SpecialKey_1->Color != clLime ? clLime : clWhite;
+				break;
+
+			case SEQ_ITEM_SALE_S:
+				Edit_SpecialKey_2->Color = Edit_SpecialKey_2->Color != clLime ? clLime : clWhite;
+
+				break;
+
+			case SEQ_ITEM_UPGRADE_S:
+				Edit_SpecialKey_3->Color = Edit_SpecialKey_3->Color != clLime ? clLime : clWhite;
+
+				break;
+
+			default:
+				break;
+		}
+	}
+	else {
+		Edit_SpecialKey_1->Color = clWhite;
+		Edit_SpecialKey_2->Color = clWhite;
+		Edit_SpecialKey_3->Color = clWhite;
+	}
+
 }
 //---------------------------------------------------------------------------
 
@@ -1686,6 +1797,8 @@ void __fastcall TfmMain::SaveToFile(const String& filename)
 		nRet = stream->Write(m_nMouseDelay, 			sizeof(m_nMouseDelay));
 
 		nRet = stream->Write(&m_eReMakeRoomType, 		sizeof(m_eReMakeRoomType));
+
+		nRet = stream->Write(m_SpecialKeys, 			sizeof(m_SpecialKeys));
 
 		int nLen = m_sSaveFileTitle.Length();
 		nRet = stream->Write(&nLen, 					sizeof(nLen));
@@ -1749,6 +1862,8 @@ void __fastcall TfmMain::LoadFromFile(const String& filename)
 		nRet = stream->Read(m_nMouseDelay, 		sizeof(m_nMouseDelay));
 
 		nRet = stream->Read(&m_eReMakeRoomType,	sizeof(m_eReMakeRoomType));
+
+		nRet = stream->Read(m_SpecialKeys, 			sizeof(m_SpecialKeys));
 
 		int len = 0;
 		nRet = stream->Read(&len, sizeof(len)); // 길이 읽기
@@ -2812,5 +2927,172 @@ int __fastcall TfmMain::SeqSaleItem()
 
 
 //------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+int __fastcall TfmMain::SeqUpgradeItem()
+{
+	// 장인 창이 이미 열려 있어야 한다.
 
+	switch(m_nSeqStep) {
+
+		//---------------------------------------------------
+		// 희귀 아이템 업그레이드.
+		case 0:
+			m_nInventoryX = 2;
+			m_nInventoryY = 0;
+
+			m_nInventoryPosX = 1430;
+			m_nInventoryPosY = 608;
+
+			m_TackTimer.StartTimer(0);
+			m_DelayTimer.StartTimer(50);
+
+			m_nSeqStep = 100;
+			break;
+
+		case 100:
+			// 희퀴템 이동.
+			m_nInventoryPosX = 1430 + (int)((double)m_nInventoryX * 50.33);
+			m_nInventoryPosY =  608 + (int)((double)m_nInventoryY * 50.0 * 2);
+
+			SendMouseMove(m_nInventoryPosX , m_nInventoryPosY);
+			::Sleep(50);
+			SendRightMouseClick(true);
+			::Sleep(50);
+			SendRightMouseClick(false);
+			::Sleep(50);
+
+			m_DelayTimer.StartDelay(100);
+			m_nSeqStep = 200;
+			break;
+
+		case 200:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 채우기
+				SendMouseMove(715, 839);
+				::Sleep(50);
+				SendLeftMouseClick(true);
+				::Sleep(50);
+				SendLeftMouseClick(false);
+				::Sleep(50);
+
+				m_DelayTimer.StartDelay(100);
+				m_nSeqStep = 300;
+			}
+			break;
+
+		case 300:
+			if(m_DelayTimer.IsDelayEnd()) {
+				// 변환
+				SendMouseMove(252, 839);
+				::Sleep(50);
+				SendLeftMouseClick(true);
+				::Sleep(50);
+				SendLeftMouseClick(false);
+				::Sleep(50);
+
+				m_DelayTimer.StartDelay(2500);
+				m_nSeqStep = 400;
+			}
+			break;
+
+		case 400:
+			// 수락
+			if(m_DelayTimer.IsDelayEnd()) {
+				SendMouseMove(252, 839);
+				::Sleep(50);
+				SendLeftMouseClick(true);
+				::Sleep(50);
+				SendLeftMouseClick(false);
+				::Sleep(50);
+
+				m_nSeqStep = 500;
+				m_DelayTimer.StartDelay(100);
+			}
+			break;
+
+		case 500:
+			if(m_DelayTimer.IsDelayEnd()) {
+				m_nInventoryX += 1;
+				if(m_nInventoryX >= 10) {
+					m_nInventoryY += 1;
+					m_nInventoryX = 2;
+				}
+
+				if(m_nInventoryY >= 3) {
+					m_DelayTimer.StartDelay(100);
+					m_nSeqStep = 9000;
+				}
+				else {
+					m_nSeqStep = 100;
+				}
+			}
+			break;
+
+		case 9000:
+			if(m_DelayTimer.IsDelayEnd()) {
+				SendKeyboardEvent(0x1b, 0x01, 0); // ESC.
+				m_nSeqStep = 0;
+				Timer_Seq->Enabled = false;
+			}
+			break;
+	}
+
+	StatusBar1->Panels->Items[10]->Text =  m_nSeqStep;
+
+	return m_nSeqStep;
+}
+
+
+void __fastcall TfmMain::Edit_SpecialKey_1Click(TObject *Sender)
+{
+	TEdit * pEdit = dynamic_cast<TEdit *>(Sender);
+
+	if(pEdit == NULL) return;
+
+	DisplayUpdate(false);
+
+	pEdit->Text = "";
+
+	m_bMacroKeyInputWait		= true;			// Macro Key 입력 대기 중인 경우.
+	m_nMacroKeyInputType		= 2;			// 0 : Start / End. 1 : Skill Key.
+	m_nMacroKeyInputIndex		= pEdit->Tag;	// 현재 선택된 Key 입력칸 번호.
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfmMain::RadioGroup_ReRoom_TypeClick(TObject *Sender)
+{
+	m_eReMakeRoomType = (eReMakeRoomType)RadioGroup_ReRoom_Type->ItemIndex;
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfmMain::Button_View_SkillSettingClick(TObject *Sender)
+{
+	fmImageView = new TfmImageView(this);
+
+	switch(m_eReMakeRoomType) {
+		case RE_ROOM_SHINBONE:		// 정강이 뼈
+			fmImageView->m_sTitle = "정강이 뼈 찾기 (악사)";
+			fmImageView->m_sFileName = ".\\images\\ReMakeRoomSkillSet_1.jpg";
+			break;
+		case RE_ROOM_RAINBOW_WATER:	// 무지개물
+			fmImageView->m_sTitle = "무지개물 찾기 (악사)";
+			fmImageView->m_sFileName = ".\\images\\ReMakeRoomSkillSet_1.jpg";
+			break;
+		case RE_ROOM_BLACK_MUSHROOM:// 검은 버섯
+			fmImageView->m_sTitle = "검은 버섯 찾기 (악사)";
+			fmImageView->m_sFileName = ".\\images\\ReMakeRoomSkillSet_1.jpg";
+			break;
+		case RE_ROOM_GIBBERING:		// 재잘재잘 보석
+			fmImageView->m_sTitle = "재잘 재잘 보석 찾기 (악사)";
+			fmImageView->m_sFileName = ".\\images\\ReMakeRoomSkillSet_1.jpg";
+			break;
+	}
+
+
+	fmImageView->ShowModal();
+
+	delete fmImageView;
+}
+//---------------------------------------------------------------------------
 
