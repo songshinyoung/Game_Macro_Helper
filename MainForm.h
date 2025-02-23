@@ -24,6 +24,7 @@ typedef enum {
 	SEQ_RE_GAME_S,
 	SEQ_ITEM_SALE_S,
 	SEQ_ITEM_UPGRADE_S,
+	SEQ_ITEM_DROP_ITEMS_s,
 
 	SEQ_MAIN_MAX
 } eMainStepType;
@@ -287,6 +288,7 @@ private:	// User declarations
 	int __fastcall SeqRegame();
 	int __fastcall SeqSaleItem();
 	int __fastcall SeqUpgradeItem();
+	int __fastcall SeqDropItems();
 
 	int 	m_nInventoryX;
 	int     m_nInventoryY;

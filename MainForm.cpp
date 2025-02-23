@@ -623,6 +623,26 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 							}
 						}
 
+						// Item ¶¥¿¡ ¶³±¸±â.
+						if((g_bMacroStarted != true)
+						&& fmMain->m_bTargetProcessFound
+						&& (pKbdLLHook->scanCode == fmMain->m_SpecialKeys[3].scanCode)
+						&& (pKbdLLHook->vkCode == fmMain->m_SpecialKeys[3].vkCode)) {
+
+							if(fmMain->Timer_Seq->Enabled != true) {
+								PlaySound("C:\\Windows\\Media\\Speech On.wav", NULL, SND_ALIAS | SND_ASYNC);
+								g_bMacroStarted = false;
+								fmMain->m_eMainStatus = SEQ_ITEM_DROP_ITEMS_s;
+								fmMain->m_nSeqStep = 0;
+								fmMain->Timer_Seq->Enabled = true;
+							}
+							else {
+								PlaySound("C:\\Windows\\Media\\Speech Off.wav", NULL, SND_ALIAS | SND_ASYNC);
+								fmMain->Timer_Seq->Enabled = false;
+								fmMain->m_eMainStatus = SEQ_MAIN_NONE;
+							}
+						}
+
 
 
 						switch(pKbdLLHook->scanCode) {
@@ -1049,6 +1069,11 @@ __fastcall TfmMain::TfmMain(TComponent* Owner) : TForm(Owner)
 	m_SpecialKeys[2].vkCode		= 0x76; 	// F7
 	m_SpecialKeys[2].scanCode	= 0x41;
 	m_SpecialKeys[2].flags		= 0;
+
+	// Items ¶¥¿¡ ¶³±¸±â.
+	m_SpecialKeys[3].vkCode		= 0x77; 	// F8
+	m_SpecialKeys[3].scanCode	= 0x42;
+	m_SpecialKeys[3].flags		= 0;
 
 }
 //---------------------------------------------------------------------------
@@ -1538,6 +1563,10 @@ void __fastcall TfmMain::Timer_SeqTimer(TObject *Sender)
 
 		case SEQ_ITEM_UPGRADE_S:
 			SeqUpgradeItem();
+			break;
+
+		case SEQ_ITEM_DROP_ITEMS_s:
+			SeqDropItems();
 			break;
 
 		default:
@@ -2573,7 +2602,7 @@ int __fastcall TfmMain::SeqSaleItem()
 			::Sleep(50);
 			SendLeftMouseClick(false);
 
-			m_DelayTimer.StartTimer(500);
+			m_DelayTimer.StartTimer(200);
 			m_nSeqStep = 200;
 			break;
 
@@ -2630,7 +2659,7 @@ int __fastcall TfmMain::SeqSaleItem()
 			::Sleep(50);
 			SendLeftMouseClick(false);
 
-			m_DelayTimer.StartTimer(500);
+			m_DelayTimer.StartTimer(200);
 			m_nSeqStep = 400;
 			break;
 
@@ -2686,7 +2715,7 @@ int __fastcall TfmMain::SeqSaleItem()
 			::Sleep(50);
 			SendLeftMouseClick(false);
 
-			m_DelayTimer.StartTimer(500);
+			m_DelayTimer.StartTimer(200);
 			m_nSeqStep = 600;
 			break;
 
@@ -3041,7 +3070,70 @@ int __fastcall TfmMain::SeqUpgradeItem()
 
 	return m_nSeqStep;
 }
+//------------------------------------------------------------------------------
+int __fastcall TfmMain::SeqDropItems()
+{
+	// ÀåÀÎ Ã¢ÀÌ ÀÌ¹Ì ¿­·Á ÀÖ¾î¾ß ÇÑ´Ù.
 
+	switch(m_nSeqStep) {
+
+		//---------------------------------------------------
+		// Item ¶¥¿¡ ¶³±¸±â.
+		case 0:
+			m_nInventoryX = 2;
+			m_nInventoryY = 0;
+
+			m_nInventoryPosX = 1430;
+			m_nInventoryPosY = 608;
+
+			m_TackTimer.StartTimer(0);
+			m_DelayTimer.StartTimer(50);
+
+			m_nSeqStep = 100;
+			break;
+
+		case 100:
+			m_nInventoryPosX = 1430 + (int)((double)m_nInventoryX * 50.33);
+			m_nInventoryPosY =  608 + (int)((double)m_nInventoryY * 50.0);
+
+			SendMouseMove(m_nInventoryPosX , m_nInventoryPosY);
+			::Sleep(5);
+			SendLeftMouseClick(true);
+			::Sleep(5);
+
+			SendMouseMove(1325 , m_nInventoryPosY);
+
+			SendLeftMouseClick(false);
+			::Sleep(5);
+
+			m_nInventoryX += 1;
+			if(m_nInventoryX >= 10) {
+				m_nInventoryY += 1;
+				m_nInventoryX = 2;
+			}
+
+			if(m_nInventoryY >= 6) {
+				m_DelayTimer.StartTimer(50);
+				m_nSeqStep = 9000;
+			}
+			else {
+				m_nSeqStep = 100;
+			}
+			break;
+
+		case 9000:
+			if(m_DelayTimer.IsDelayEnd()) {
+				SendKeyboardEvent(0x1b, 0x01, 0); // ESC.
+				m_nSeqStep = 0;
+				Timer_Seq->Enabled = false;
+			}
+			break;
+	}
+
+	StatusBar1->Panels->Items[10]->Text =  m_nSeqStep;
+
+	return m_nSeqStep;
+}
 
 void __fastcall TfmMain::Edit_SpecialKey_1Click(TObject *Sender)
 {
