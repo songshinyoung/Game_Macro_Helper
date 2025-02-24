@@ -1618,8 +1618,21 @@ void __fastcall TfmMain::Timer_MacroTimer(TObject *Sender)
 	// LEFT 마우스 클릭
 	if(m_bMouseEnabled[0]) {
 		if(m_MouseSkillDelay[0].IsDelayEnd() && g_bMacroStarted) {
+
+			KBDLLHOOKSTRUCT KeyInfo;
+			KeyInfo.vkCode   = 0xC0;
+			KeyInfo.scanCode = 0x29;
+
+			SendKeyboardEvent(KeyInfo, true);
+
+			::Sleep(10);
 			SendLeftMouseClick(true);
+			::Sleep(10);
 			SendLeftMouseClick(false);
+			::Sleep(10);
+
+			SendKeyboardEvent(KeyInfo, false);
+
 			m_MouseSkillDelay[0].StartDelay(m_nMouseDelay[0]);
 		}
 		else if(m_MouseSkillDelay[0].IsStarted() != true) {
@@ -1954,7 +1967,7 @@ void __fastcall TfmMain::LoadFromFile(const String& filename)
 
 void __fastcall TfmMain::OpenFile1Click(TObject *Sender)
 {
-	LoadFromFile("Setting.cfg");
+	// LoadFromFile("LastSettingData.cfg");
 
 	OpenDialog1->Filter = "설정 파일 (*.cfg)|*.cfg|모든 파일 (*.*)|*.*";
 
